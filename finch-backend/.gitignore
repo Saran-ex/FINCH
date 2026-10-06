@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Secrets / local env files (keep the example template)
+.env
+.env.*
+!.env.example
+
+# Runtime data - SQLite database and its backups contain personal data
+data/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-error.log*
+
+# Benchmark run output
+scripts/benchmark/out/
+
+# Third-party model / voice weights (large binaries)
+voices/*.onnx
+models/*.bin
+
+# OS
+.DS_Store
+
+# Root-level scratch/debug artifacts
+backend.log
+verify-results.json
+check_db.mjs
+check_migrations.js
+check_tables.js
+check_tables.mjs
+compare_prompts.mjs
+query_db.mjs
+test-ollama.mjs
+_verify_tmp.mjs

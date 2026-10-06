@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Secrets / local env files (keep the example template)
+.env
+.env.*
+!.env.example
+
+# Runtime data - SQLite database and its backups contain personal data
+data/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-error.log*
+
+# Scratch backup folders
+_prompt-backup-*/
+_model-picker-backup-*/
+_conv-picker-backup-*/
+
+# Build output
+dist/
+build/
+
+# Third-party model / voice weights (749 MB total; GitHub rejects files > 100 MB)
+models/
+voices/
+searxng/
+test_payload.json
+TASK-STATUS-model-picker.md
