@@ -1,16 +1,16 @@
-import type { SearchResult } from './types';
-import { DEFAULT_WIKIPEDIA_URL } from './wikipediaClient';
+import type { SearchResult } from "./types";
+import { DEFAULT_WIKIPEDIA_URL } from "./wikipediaClient";
 
 const DEFAULT_TIMEOUT_MS = 8000;
 const MAX_TITLES = 5;
 const MAX_IMAGE_LENGTH = 500;
-const USER_AGENT = 'FinchLocal/0.1 (personal offline-first project)';
-const WIKI_PATH_PREFIX = '/wiki/';
+const USER_AGENT = "FinchLocal/0.1 (personal offline-first project)";
+const WIKI_PATH_PREFIX = "/wiki/";
 
 function isValidImage(value: unknown): value is string {
   return (
-    typeof value === 'string' &&
-    value.startsWith('https://') &&
+    typeof value === "string" &&
+    value.startsWith("https://") &&
     value.length <= MAX_IMAGE_LENGTH
   );
 }
@@ -23,14 +23,14 @@ function titleFromUrl(url: string): string | null {
   } catch {
     return null;
   }
-  if (parsed.hostname !== 'en.wikipedia.org') return null;
+  if (parsed.hostname !== "en.wikipedia.org") return null;
   if (!parsed.pathname.startsWith(WIKI_PATH_PREFIX)) return null;
 
   const rawPath = parsed.pathname.slice(WIKI_PATH_PREFIX.length);
   if (rawPath.length === 0) return null;
 
   try {
-    return decodeURIComponent(rawPath).replace(/_/g, ' ');
+    return decodeURIComponent(rawPath).replace(/_/g, " ");
   } catch {
     return null;
   }
@@ -42,8 +42,9 @@ interface PageLike {
 }
 
 function imageForPage(page: PageLike): string | undefined {
-  if (typeof page.title !== 'string') return undefined;
-  if (page.thumbnail === null || typeof page.thumbnail !== 'object') return undefined;
+  if (typeof page.title !== "string") return undefined;
+  if (page.thumbnail === null || typeof page.thumbnail !== "object")
+    return undefined;
   const source = (page.thumbnail as { source?: unknown }).source;
   if (!isValidImage(source)) return undefined;
   return source;
@@ -53,7 +54,7 @@ function imageForPage(page: PageLike): string | undefined {
 // Never throws: any failure returns the input results unchanged.
 export async function addWikipediaImages(
   results: SearchResult[],
-  options: { timeoutMs?: number; baseUrl?: string } = {}
+  options: { timeoutMs?: number; baseUrl?: string } = {},
 ): Promise<SearchResult[]> {
   const baseUrl = options.baseUrl ?? DEFAULT_WIKIPEDIA_URL;
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -80,12 +81,12 @@ export async function addWikipediaImages(
   let pages: PageLike[] = [];
   try {
     const params = new URLSearchParams({
-      action: 'query',
-      format: 'json',
-      prop: 'pageimages',
-      piprop: 'thumbnail',
-      pithumbsize: '300',
-      titles: titles.join('|'),
+      action: "query",
+      format: "json",
+      prop: "pageimages",
+      piprop: "thumbnail",
+      pithumbsize: "300",
+      titles: titles.join("|"),
     });
 
     const controller = new AbortController();
@@ -94,7 +95,7 @@ export async function addWikipediaImages(
     try {
       response = await fetch(`${baseUrl}/w/api.php?${params.toString()}`, {
         signal: controller.signal,
-        headers: { 'User-Agent': USER_AGENT },
+        headers: { "User-Agent": USER_AGENT },
       });
     } finally {
       clearTimeout(timer);
@@ -104,7 +105,7 @@ export async function addWikipediaImages(
 
     const payload = (await response.json()) as { query?: { pages?: unknown } };
     const rawPages = payload?.query?.pages;
-    if (rawPages === null || typeof rawPages !== 'object') return results;
+    if (rawPages === null || typeof rawPages !== "object") return results;
     pages = Object.values(rawPages) as PageLike[];
   } catch {
     return results;
@@ -112,9 +113,9 @@ export async function addWikipediaImages(
 
   const imageByTitle = new Map<string, string>();
   for (const page of pages) {
-    if (page === null || typeof page !== 'object') continue;
+    if (page === null || typeof page !== "object") continue;
     const image = imageForPage(page);
-    if (image && typeof page.title === 'string') {
+    if (image && typeof page.title === "string") {
       imageByTitle.set(page.title, image);
     }
   }

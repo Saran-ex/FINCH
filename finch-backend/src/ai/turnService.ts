@@ -9,27 +9,46 @@ import { buildSystemPrompt, STREAM_REPLY_GUIDANCE } from "./promptBuilder.js";
 import { MAX_REPLY_LENGTH, type ValidatedIntent } from "./responseValidator.js";
 import type { StreamDeltaHandler } from "../models/adapter.js";
 import { fallbackIntent } from "./fallbackIntent.js";
-import { getOrCreateActiveConversation, maybeSetTitleFromFirstMessage } from "../memory/conversationService.js";
+import {
+  getOrCreateActiveConversation,
+  maybeSetTitleFromFirstMessage,
+} from "../memory/conversationService.js";
 import { buildMemoryContext } from "../memory/retrieval.js";
 import { addTurn } from "../memory/messageService.js";
 import { routedSearch } from "../search/searchRouter.js";
 import { getMemoryStatus } from "../search/memoryCheck.js";
 import { rankAndFilterResults } from "../search/trust.js";
 import { filterRelevant } from "../search/relevance.js";
-import { buildSearchUserPrompt, SEARCH_CARDS_PROMPT_DRAFT, buildResearchDirectionsPrompt } from "../search/answerBuilder.js";
-import { parseCardsJson, buildCardsPrompt, buildCardsFromSources, type TopicCard } from "../search/cardBuilder.js";
+import {
+  buildSearchUserPrompt,
+  SEARCH_CARDS_PROMPT_DRAFT,
+  buildResearchDirectionsPrompt,
+} from "../search/answerBuilder.js";
+import {
+  parseCardsJson,
+  buildCardsPrompt,
+  buildCardsFromSources,
+  type TopicCard,
+} from "../search/cardBuilder.js";
 import { rewriteSearchQuery } from "../search/queryRewriter.js";
 import { researchSearch } from "../search/researchSearch.js";
 import { addWikipediaImages } from "../search/imageEnricher.js";
 import { fetchQueryImages } from "../search/queryImageFetcher.js";
-import { listResearchResourceCategoryNames, listResearchResourceSitesForCategory } from "../services/researchResources.js";
+import {
+  listResearchResourceCategoryNames,
+  listResearchResourceSitesForCategory,
+} from "../services/researchResources.js";
 import { saveTurnResult } from "../services/turnResults.js";
 import { searxngSiteSearch } from "../search/siteSearch.js";
 import { SearchError } from "../search/searxngClient.js";
 import type { SearchResult, SearchSource } from "../search/types.js";
 
-function nowMs(): number { return Date.now(); }
-function fmt(ms: number): string { return `${ms}ms`; }
+function nowMs(): number {
+  return Date.now();
+}
+function fmt(ms: number): string {
+  return `${ms}ms`;
+}
 
 // Interleaves site results with academic results (site first), dedupes by URL
 // (first occurrence wins, so site results win ties) and caps at `max`.
@@ -37,7 +56,7 @@ function fmt(ms: number): string { return `${ms}ms`; }
 function mergeWithSiteResults(
   siteResults: SearchResult[],
   academicResults: SearchResult[],
-  max: number
+  max: number,
 ): SearchResult[] {
   const merged: SearchResult[] = [];
   const seen = new Set<string>();
@@ -84,11 +103,14 @@ function chooseAlias(input: TurnInput, transcript: string): string {
       chosenAlias = input.modelOverride;
       logger.info("turn: using model override", { override: chosenAlias });
     } else {
-      logger.warn("turn: model override not allowed for mode, using mode default", {
-        override: input.modelOverride,
-        currentMode: input.currentMode,
-        allowed: allowedAliases,
-      });
+      logger.warn(
+        "turn: model override not allowed for mode, using mode default",
+        {
+          override: input.modelOverride,
+          currentMode: input.currentMode,
+          allowed: allowedAliases,
+        },
+      );
       chosenAlias = routeMode(input.currentMode, transcript).modelAlias;
     }
   } else {
@@ -151,10 +173,15 @@ export async function processTurn(input: TurnInput): Promise<TurnResult> {
   // For plan and research modes: plain text generation with system + user messages
   if (input.currentMode === "plan") {
     try {
-      const result = await adapter.generate(alias.alias, alias.ollamaModel, transcript, {
-        mode: input.currentMode,
-        systemPrompt,
-      });
+      const result = await adapter.generate(
+        alias.alias,
+        alias.ollamaModel,
+        transcript,
+        {
+          mode: input.currentMode,
+          systemPrompt,
+        },
+      );
 
       tokensIn = result.tokensIn;
       tokensOut = result.tokensOut;
@@ -197,21 +224,36 @@ export async function processTurn(input: TurnInput): Promise<TurnResult> {
       // No direction chosen yet: suggest directions instead of searching.
       try {
         const categoryNames = listResearchResourceCategoryNames();
-        const directionsInstructions = buildResearchDirectionsPrompt(categoryNames);
+        const directionsInstructions =
+          buildResearchDirectionsPrompt(categoryNames);
         logger.info("timing: directions call start", { ms: fmt(nowMs() - t0) });
         const directionsResult = await adapter.generate(
           alias.alias,
           alias.ollamaModel,
           buildCardsPrompt(transcript, [], directionsInstructions),
-          { mode: "research", maxTokens: 700, temperature: 0.3, format: "json" }
+          {
+            mode: "research",
+            maxTokens: 700,
+            temperature: 0.3,
+            format: "json",
+          },
         );
         logger.info("timing: directions call done", { ms: fmt(nowMs() - t0) });
-        const parsedDirections = parseCardsJson(directionsResult.text).slice(0, 5);
+        const parsedDirections = parseCardsJson(directionsResult.text).slice(
+          0,
+          5,
+        );
         logger.info("turn: directions categorised", {
-          categories: parsedDirections.map((d) => ({ headline: d.headline, category: d.category ?? "(none)" })),
+          categories: parsedDirections.map((d) => ({
+            headline: d.headline,
+            category: d.category ?? "(none)",
+          })),
         });
         if (parsedDirections.length > 0) {
-          logger.info("timing: directions early return", { ms: fmt(nowMs() - t0), count: parsedDirections.length });
+          logger.info("timing: directions early return", {
+            ms: fmt(nowMs() - t0),
+            count: parsedDirections.length,
+          });
           addTurn({
             conversationId: conversation.id,
             mode: input.currentMode,
@@ -246,7 +288,10 @@ export async function processTurn(input: TurnInput): Promise<TurnResult> {
             directions: parsedDirections,
           };
         }
-        logger.warn("turn: research directions parsed empty — falling through to search", { rawLength: directionsResult.text.length });
+        logger.warn(
+          "turn: research directions parsed empty — falling through to search",
+          { rawLength: directionsResult.text.length },
+        );
       } catch (err) {
         logger.error("turn: research directions failed", { err });
       }
@@ -266,23 +311,34 @@ export async function processTurn(input: TurnInput): Promise<TurnResult> {
     try {
       logger.info("timing: research search start", { ms: fmt(nowMs() - t0) });
       const outcome = await researchSearch(query);
-      logger.info("timing: research search done", { ms: fmt(nowMs() - t0), found: outcome.results.length });
+      logger.info("timing: research search done", {
+        ms: fmt(nowMs() - t0),
+        found: outcome.results.length,
+      });
 
       // Stage 3: search the chosen category's trusted sites in parallel.
       const categorySites = input.researchCategory
         ? listResearchResourceSitesForCategory(input.researchCategory)
         : [];
       const siteOutcomes = await Promise.allSettled(
-        categorySites.map((site) => searxngSiteSearch(site, query, { maxResults: 4 }))
+        categorySites.map((site) =>
+          searxngSiteSearch(site, query, { maxResults: 4 }),
+        ),
       );
       const flatSiteResults: SearchResult[] = [];
       for (const o of siteOutcomes) {
         if (o.status === "fulfilled") flatSiteResults.push(...o.value);
       }
 
-      let ranked = outcome.searchSource === "research"
-        ? outcome.results.slice(0, 8)
-        : await addWikipediaImages(filterRelevant(rankAndFilterResults(outcome.results), query).slice(0, 8));
+      let ranked =
+        outcome.searchSource === "research"
+          ? outcome.results.slice(0, 8)
+          : await addWikipediaImages(
+              filterRelevant(
+                rankAndFilterResults(outcome.results),
+                query,
+              ).slice(0, 8),
+            );
       if (flatSiteResults.length > 0) {
         ranked = mergeWithSiteResults(flatSiteResults, ranked, 8);
       }
@@ -308,7 +364,8 @@ export async function processTurn(input: TurnInput): Promise<TurnResult> {
           action: "answer",
           mode: "research",
           request: transcript,
-          reply: "I could not find enough web sources for that. Try rephrasing your question.",
+          reply:
+            "I could not find enough web sources for that. Try rephrasing your question.",
           source: "fallback",
         };
         modelAliasForStorage = null;
@@ -329,16 +386,27 @@ export async function processTurn(input: TurnInput): Promise<TurnResult> {
 
         logger.info("timing: build cards start", { ms: fmt(nowMs() - t0) });
         topicCards = buildCardsFromSources(ranked, 5);
-        logger.info("timing: build cards done", { ms: fmt(nowMs() - t0), count: topicCards.length });
+        logger.info("timing: build cards done", {
+          ms: fmt(nowMs() - t0),
+          count: topicCards.length,
+        });
 
         logger.info("timing: image fetch start", { ms: fmt(nowMs() - t0) });
         const cardImages = await fetchQueryImages(focusedQuery, 5);
-        logger.info("timing: image fetch done", { ms: fmt(nowMs() - t0), images: cardImages.length });
+        logger.info("timing: image fetch done", {
+          ms: fmt(nowMs() - t0),
+          images: cardImages.length,
+        });
         topicCards = topicCards.map((card, index) =>
-          index < cardImages.length ? { ...card, image: cardImages[index] } : card
+          index < cardImages.length
+            ? { ...card, image: cardImages[index] }
+            : card,
         );
 
-        logger.info("turn: cards", { mode: input.currentMode, count: topicCards.length });
+        logger.info("turn: cards", {
+          mode: input.currentMode,
+          count: topicCards.length,
+        });
       }
     } catch (err) {
       logger.error("turn: research failed", {
@@ -366,8 +434,15 @@ export async function processTurn(input: TurnInput): Promise<TurnResult> {
 
     try {
       // RAM is read before the rewrite loads the model, so loading it does not trigger the low-RAM fallback.
-      const outcome = await routedSearch(query, { getUsedPercent: () => ramBeforeRewrite });
-      const ranked = await addWikipediaImages(filterRelevant(rankAndFilterResults(outcome.results), query).slice(0, 5));
+      const outcome = await routedSearch(query, {
+        getUsedPercent: () => ramBeforeRewrite,
+      });
+      const ranked = await addWikipediaImages(
+        filterRelevant(rankAndFilterResults(outcome.results), query).slice(
+          0,
+          5,
+        ),
+      );
       webSources = ranked;
       searchSource = outcome.searchSource;
       logger.info("turn: search", {
@@ -382,7 +457,8 @@ export async function processTurn(input: TurnInput): Promise<TurnResult> {
           action: "answer",
           mode: "search",
           request: transcript,
-          reply: "I could not find any web results for that. Try rephrasing your question.",
+          reply:
+            "I could not find any web results for that. Try rephrasing your question.",
           source: "fallback",
         };
         modelAliasForStorage = null;
@@ -394,7 +470,7 @@ export async function processTurn(input: TurnInput): Promise<TurnResult> {
             alias.alias,
             alias.ollamaModel,
             buildSearchUserPrompt(transcript, ranked, outcome.searchSource),
-            { mode: "search", systemPrompt }
+            { mode: "search", systemPrompt },
           );
 
           tokensIn = result.tokensIn;
@@ -412,7 +488,9 @@ export async function processTurn(input: TurnInput): Promise<TurnResult> {
             source: "qwen",
           };
         } catch (err) {
-          logger.error("turn: search model call failed, using fallback", { err });
+          logger.error("turn: search model call failed, using fallback", {
+            err,
+          });
           validated = fallbackIntent(transcript, input.currentMode, "fallback");
           modelAliasForStorage = null;
           tokensIn = 0;
@@ -420,16 +498,21 @@ export async function processTurn(input: TurnInput): Promise<TurnResult> {
         }
 
         try {
-          const cardsResult = await adapter.generate(alias.alias,
+          const cardsResult = await adapter.generate(
+            alias.alias,
             alias.ollamaModel,
             buildCardsPrompt(transcript, ranked, SEARCH_CARDS_PROMPT_DRAFT),
-            { mode: "search", maxTokens: 700, temperature: 0.3 });
+            { mode: "search", maxTokens: 700, temperature: 0.3 },
+          );
           topicCards = parseCardsJson(cardsResult.text).slice(0, 4);
         } catch (err) {
           logger.error("turn: search cards failed", { err });
           topicCards = [];
         }
-        logger.info("turn: cards", { mode: input.currentMode, count: topicCards.length });
+        logger.info("turn: cards", {
+          mode: input.currentMode,
+          count: topicCards.length,
+        });
       }
     } catch (err) {
       logger.error("turn: search failed", {
@@ -451,18 +534,24 @@ export async function processTurn(input: TurnInput): Promise<TurnResult> {
   } else {
     // Conversation mode (single-shot path): plain prose reply. Intent
     // classification was removed — no router call, no change_mode.
-    const memoryContext = input.currentMode === "conversation" 
-      ? buildMemoryContext(conversation.id, input.currentMode)
-      : "";
+    const memoryContext =
+      input.currentMode === "conversation"
+        ? buildMemoryContext(conversation.id, input.currentMode)
+        : "";
     const plainSystem = [systemPrompt, memoryContext, STREAM_REPLY_GUIDANCE]
       .filter((part) => part.length > 0)
       .join("\n\n");
 
     try {
-      const result = await adapter.generate(alias.alias, alias.ollamaModel, transcript, {
-        mode: input.currentMode,
-        systemPrompt: plainSystem,
-      });
+      const result = await adapter.generate(
+        alias.alias,
+        alias.ollamaModel,
+        transcript,
+        {
+          mode: input.currentMode,
+          systemPrompt: plainSystem,
+        },
+      );
 
       tokensIn = result.tokensIn;
       tokensOut = result.tokensOut;
@@ -518,7 +607,14 @@ export async function processTurn(input: TurnInput): Promise<TurnResult> {
     });
   }
 
-  return { ...validated, conversationId: conversation.id, webSources, searchSource, topicCards, directions };
+  return {
+    ...validated,
+    conversationId: conversation.id,
+    webSources,
+    searchSource,
+    topicCards,
+    directions,
+  };
 }
 
 // Two-phase streaming turn for conversation mode:
@@ -533,7 +629,7 @@ export async function processTurnStream(
   input: TurnInput,
   onDelta: StreamDeltaHandler,
   signal?: AbortSignal,
-  onStreamEnd?: () => void
+  onStreamEnd?: () => void,
 ): Promise<TurnResult> {
   const turnStart = nowMs();
   const transcript = input.transcript.trim();
@@ -594,11 +690,16 @@ export async function processTurnStream(
 
   try {
     if (sequential) {
-      const r = await adapter.generate(alias.alias, alias.ollamaModel, transcript, {
-        mode: input.currentMode,
-        systemPrompt: streamSystem,
-        signal,
-      });
+      const r = await adapter.generate(
+        alias.alias,
+        alias.ollamaModel,
+        transcript,
+        {
+          mode: input.currentMode,
+          systemPrompt: streamSystem,
+          signal,
+        },
+      );
       streamTokensIn = r.tokensIn;
       streamTokensOut = r.tokensOut;
       if (r.text.length > 0) {
@@ -606,21 +707,32 @@ export async function processTurnStream(
         onDelta(replyText, replyText);
       }
     } else if (adapter.generateStream) {
-      const r = await adapter.generateStream(alias.alias, alias.ollamaModel, transcript, {
-        mode: input.currentMode,
-        systemPrompt: streamSystem,
-        signal,
-      }, handleDelta);
+      const r = await adapter.generateStream(
+        alias.alias,
+        alias.ollamaModel,
+        transcript,
+        {
+          mode: input.currentMode,
+          systemPrompt: streamSystem,
+          signal,
+        },
+        handleDelta,
+      );
       streamTokensIn = r.tokensIn;
       streamTokensOut = r.tokensOut;
       if (r.text.length > 0) replyText = r.text;
     } else {
       // Adapter without streaming: single-shot, forward the whole reply at once.
-      const r = await adapter.generate(alias.alias, alias.ollamaModel, transcript, {
-        mode: input.currentMode,
-        systemPrompt: streamSystem,
-        signal,
-      });
+      const r = await adapter.generate(
+        alias.alias,
+        alias.ollamaModel,
+        transcript,
+        {
+          mode: input.currentMode,
+          systemPrompt: streamSystem,
+          signal,
+        },
+      );
       streamTokensIn = r.tokensIn;
       streamTokensOut = r.tokensOut;
       if (r.text.length > 0) {
@@ -631,7 +743,10 @@ export async function processTurnStream(
   } catch (err) {
     // Caller aborted (client disconnected): stop all further work.
     if (signal?.aborted) throw err;
-    logger.error("turn: reply stream failed", { err, partialLen: replyText.length });
+    logger.error("turn: reply stream failed", {
+      err,
+      partialLen: replyText.length,
+    });
   }
 
   if (signal?.aborted) {

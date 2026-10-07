@@ -658,3 +658,11 @@ export async function getModeMessages(mode: Mode, limit = 200): Promise<ModeMess
   }
   return res.json() as Promise<ModeMessage[]>;
 }
+
+export async function deleteModeMessage(id: number): Promise<void> {
+  const res = await fetch(`${BASE_URL}/api/control/memory/messages/${id}`, {
+    method: "DELETE",
+  });
+  if (res.status === 404) throw new ApiRequestError("Message not found", 404);
+  if (!res.ok) throw new Error(await readApiError(res, `Failed to delete message (${res.status})`));
+}

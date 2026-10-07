@@ -13,9 +13,11 @@ type AliasRow = {
 };
 
 export function listAliases(): ModelAlias[] {
-  const rows = db.prepare(
-    "SELECT alias, display_name, ollama_model, description, enabled FROM model_aliases ORDER BY id"
-  ).all() as AliasRow[];
+  const rows = db
+    .prepare(
+      "SELECT alias, display_name, ollama_model, description, enabled FROM model_aliases ORDER BY id",
+    )
+    .all() as AliasRow[];
 
   return rows.map((r) => ({
     alias: r.alias,
@@ -27,9 +29,11 @@ export function listAliases(): ModelAlias[] {
 }
 
 export function getAlias(alias: string): ModelAlias {
-  const row = db.prepare(
-    "SELECT alias, display_name, ollama_model, description, enabled FROM model_aliases WHERE alias = ?"
-  ).get(alias) as AliasRow | undefined;
+  const row = db
+    .prepare(
+      "SELECT alias, display_name, ollama_model, description, enabled FROM model_aliases WHERE alias = ?",
+    )
+    .get(alias) as AliasRow | undefined;
 
   if (!row) throw new NotFoundError(`Model alias '${alias}' not found`);
 

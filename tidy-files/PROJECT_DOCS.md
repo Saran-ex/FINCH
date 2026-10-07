@@ -8,34 +8,31 @@
 
 ## Technology Stack
 
-| Layer | Technology |
-|-------|------------|
-| Framework | React 19 + TanStack Start (file-based routing) |
-| Build Tool | Vite 8 + Rolldown |
-| Styling | Tailwind CSS v4 + tw-animate-css |
-| State | React useState + TanStack Query (server state) |
-| Routing | TanStack Router (type-safe) |
-| UI Components | Radix UI primitives + custom glass components |
-| Icons | Lucide React |
-| Voice | Web Speech API (SpeechRecognition/webkitSpeechRecognition) |
-| Language | TypeScript (strict) |
-| Deployment | Nitro (Cloudflare Workers preset) |
+| Layer         | Technology                                                 |
+| ------------- | ---------------------------------------------------------- |
+| Framework     | React 19 + TanStack Start (file-based routing)             |
+| Build Tool    | Vite 8 + Rolldown                                          |
+| Styling       | Tailwind CSS v4 + tw-animate-css                           |
+| State         | React useState + TanStack Query (server state)             |
+| Routing       | TanStack Router (type-safe)                                |
+| UI Components | Radix UI primitives + custom glass components              |
+| Icons         | Lucide React                                               |
+| Voice         | Web Speech API (SpeechRecognition/webkitSpeechRecognition) |
+| Language      | TypeScript (strict)                                        |
+| Deployment    | Nitro (Cloudflare Workers preset)                          |
 
 ---
 
 ## File Structure
 
-`
-E:\Finch\tidy-files/
+`E:\Finch\tidy-files/
 ├── public/
 │   └── favicon.ico
 ├── src/
-│   ├── assets/
-│   │   └── finch-companion.png          # 3D Finch character illustration
 │   ├── components/
 │   │   ├── finch/                       # Finch-specific UI components
 │   │   │   ├── ExpandedInformation.tsx  # Modal detail view for results
-│   │   │   ├── FinchViewport.tsx        # Finch character display with aura/ground
+│   │   │   ├── FinchOrb.tsx             # Animated orb with voice-state glow
 │   │   │   ├── FloatingInformation.tsx  # Floating glass cards for results
 │   │   │   ├── GlassResearchField.tsx   # Research results grid
 │   │   │   ├── GlassResult.tsx          # Individual search result card
@@ -50,7 +47,6 @@ E:\Finch\tidy-files/
 │   │   ├── use-mobile.tsx               # Mobile detection hook
 │   │   └── useVoiceRecognition.ts       # Web Speech API wrapper hook
 │   ├── lib/
-│   │   ├── lovable-error-reporting.ts   # Error reporting utility
 │   │   └── utils.ts                     # cn() className utility
 │   ├── modes/                           # Four mode implementations
 │   │   ├── ConversationMode.tsx         # Conversational chat interface
@@ -74,8 +70,7 @@ E:\Finch\tidy-files/
 ├── tsconfig.json
 ├── bun.lock
 ├── bunfig.toml
-└── README.md
-`
+└── README.md`
 
 ---
 
@@ -87,6 +82,7 @@ E:\Finch\tidy-files/
 **Purpose:** Main orchestration page - renders the active mode, handles voice recognition, manages global state.
 
 **Responsibilities:**
+
 - **Mode State**: Single source of truth for activeMode (conversation | plan | search | research)
 - **Voice Recognition**: Integrates useVoiceRecognition hook, maps transcript to mode via detectModeIntent
 - **Request Preservation**: Extracts and stores user request after mode switch (e.g., "search for React" to mode=search, request="search for React")
@@ -101,6 +97,7 @@ pendingRequest: string                                       // User request pre
 `
 
 **Child Components (conditional):**
+
 - ConversationMode - when mode === "conversation"
 - PlanMode - when mode === "plan"
 - SearchMode - when mode === "search"
@@ -118,12 +115,14 @@ All modes share: pendingRequest prop (pre-fills input from voice command)
 **Purpose:** Natural language chat with Finch - the "home" mode.
 
 **UI:**
-- Centered Finch character (FinchViewport) with animated aura
+
+- Centered animated orb (FinchOrb) with voice-state glow
 - Greeting: "Good morning." / "FINCH / 01"
 - Voice request display (shows preserved request from voice command)
 - Microphone button (passed from parent)
 
 **Interaction:**
+
 - Click mic - speak - voice command detected - switches mode
 - No text input in this mode (conversation happens via voice)
 
@@ -135,6 +134,7 @@ All modes share: pendingRequest prop (pre-fills input from voice command)
 **Purpose:** Structured planning workspace - turn intentions into actionable plans.
 
 **UI:**
+
 - Orbit background animation
 - Glass-textarea composer: "What would you like to plan?"
 - Submit button (ArrowUp icon)
@@ -142,6 +142,7 @@ All modes share: pendingRequest prop (pre-fills input from voice command)
 - Footnote: "A quiet space for turning intention into direction."
 
 **Interaction:**
+
 - Text input for planning requests
 - Mock response on submit (simulates AI plan generation)
 - Pre-fills from pendingRequest (voice: "Turn on plan mode and plan my project")
@@ -154,6 +155,7 @@ All modes share: pendingRequest prop (pre-fills input from voice command)
 **Purpose:** Web search interface with liquid glass environment and animated results.
 
 **UI:**
+
 - LiquidGlassEnvironment - animated fluid background (speeds up during search)
 - Immersed Finch viewport (smaller, lower)
 - Search stages: "Searching..." to "Finding sources..." to "Comparing information..." to "Collecting results..."
@@ -164,6 +166,7 @@ All modes share: pendingRequest prop (pre-fills input from voice command)
 **Mock Data:** mockSearchResults (4 items with title, source, description, category, detail)
 
 **Interaction:**
+
 - Type query - submit - animated search stages - results appear as floating cards
 - Click card - expanded detail modal
 - Pre-fills from pendingRequest
@@ -176,6 +179,7 @@ All modes share: pendingRequest prop (pre-fills input from voice command)
 **Purpose:** Deep research with multi-stage analysis and connected knowledge graph.
 
 **UI:**
+
 - LiquidGlassEnvironment (active during research stages)
 - Immersed Finch viewport
 - 6 research stages: "Understanding context..." to "Reviewing conversation..." to "Connecting related information..." to "Analyzing relationships..." to "Building research..." to "Research complete."
@@ -186,6 +190,7 @@ All modes share: pendingRequest prop (pre-fills input from voice command)
 **Mock Data:** mockResearch (5 items with category, title, description, detail, connections[], depth)
 
 **Interaction:**
+
 - Auto-advances through research stages on mount
 - Results appear as positioned floating cards with depth layering
 - Click card - expanded detail with connection threads
@@ -200,6 +205,7 @@ All modes share: pendingRequest prop (pre-fills input from voice command)
 **Hook:** useVoiceRecognition() to { state, transcript, error, startListening, stopListening, reset, isSupported, isSecureContext }
 
 **States:**
+
 - idle - Ready, mic shows "Ready"
 - listening - Active recognition, pulsing ring animation
 - processing - Recognition ended, analyzing transcript
@@ -207,6 +213,7 @@ All modes share: pendingRequest prop (pre-fills input from voice command)
 - unsupported - Browser doesn't support SpeechRecognition
 
 **Features:**
+
 - Supports both SpeechRecognition and webkitSpeechRecognition
 - Single-shot recognition (not continuous)
 - Interim results enabled
@@ -215,14 +222,15 @@ All modes share: pendingRequest prop (pre-fills input from voice command)
 - Cleanup on unmount (stops recognition, removes listeners)
 
 **Error Messages:**
-| Error | Message |
-|-------|---------|
-| no-speech | "No speech detected. Please try again." |
-| audio-capture | "Microphone not found. Please check your microphone." |
-| not-allowed | "Microphone access denied. Please allow microphone access in browser settings." |
-| network (1st) | "Speech service temporarily unavailable. Retrying..." - auto-retry |
-| network (retry) | "Speech service unavailable. Please try again in a moment." |
-| Insecure origin | "Voice recognition requires HTTPS. Use localhost or deploy with SSL." |
+
+| Error           | Message                                                                         |
+| --------------- | ------------------------------------------------------------------------------- |
+| no-speech       | "No speech detected. Please try again."                                         |
+| audio-capture   | "Microphone not found. Please check your microphone."                           |
+| not-allowed     | "Microphone access denied. Please allow microphone access in browser settings." |
+| network (1st)   | "Speech service temporarily unavailable. Retrying..." - auto-retry              |
+| network (retry) | "Speech service unavailable. Please try again in a moment."                     |
+| Insecure origin | "Voice recognition requires HTTPS. Use localhost or deploy with SSL."           |
 
 ---
 
@@ -231,63 +239,57 @@ All modes share: pendingRequest prop (pre-fills input from voice command)
 **Function:** detectModeIntent(text: string) to { mode: Mode | null, request: string }
 
 **Direct Commands (high priority):**
-`
-"Turn on conversation mode" to conversation
+`"Turn on conversation mode" to conversation
 "Turn on plan mode" to plan
 "Turn on search mode" to search
 "Turn on research mode" to research
 "Switch to [mode] mode" to [mode]
 "Go to [mode]" to [mode]
-"Activate [mode] mode" to [mode]
-`
+"Activate [mode] mode" to [mode]`
 
 **Natural Variations:**
-`
-Conversation: "Let's talk", "Let's chat", "I want to talk", "Talk with me"
+`Conversation: "Let's talk", "Let's chat", "I want to talk", "Talk with me"
 Plan: "Let's make a plan", "Help me plan this", "I want to plan something"
 Search: "Search for React", "Find information about TypeScript", "Look this up"
-Research: "Research this", "Do deep research on React", "Investigate this topic"
-`
+Research: "Research this", "Do deep research on React", "Investigate this topic"`
 
 **Compound Commands (preserves request):**
 `
 "Turn on search mode and search for React tutorials"
-  to mode: "search", request: "search for React tutorials"
+to mode: "search", request: "search for React tutorials"
 
 "Switch to plan mode and create a plan for my Finch project"
-  to mode: "plan", request: "create a plan for my Finch project"
+to mode: "plan", request: "create a plan for my Finch project"
 `
 
 **Priority:** Research > Search (explicit "research" beats "search for")
 
 **Negative Cases (no mode switch):**
-`
-Current: conversation to "What is React?" to stays conversation
-Current: research to "Explain React hooks" to stays research
-`
+`Current: conversation to "What is React?" to stays conversation
+Current: research to "Explain React hooks" to stays research`
 
 ---
 
 ## UI Components (Finch-Specific)
 
-| Component | Purpose | Key Features |
-|-----------|---------|--------------|
-| FinchViewport | Finch character display | Aura glow, ground shadow, immersed variant |
-| ModeIndicator | Top-right navigation | 4 tabs, active dot indicator, click to switch |
-| VoiceControl | Bottom-center mic button | Toggle idle to listening, pulsing ring, tooltips |
-| LiquidGlassEnvironment | Animated background | 4 fluid layers, speeds up when active={true} |
-| GlassResult | Search result card | Glass morphism, hover lift, position props |
-| GlassResearchField | Research results grid | 5 positioned items, depth layering |
-| FloatingInformation | Base floating card | Drift animation, hover expand, pointer glow |
-| ExpandedInformation | Full-screen detail modal | Backdrop blur, connections list, close button |
+| Component              | Purpose                  | Key Features                                     |
+| ---------------------- | ------------------------ | ------------------------------------------------ |
+| FinchOrb               | Animated orb display     | Voice-state animation, aura glow, ground shadow  |
+| ModeIndicator          | Top-right navigation     | 4 tabs, active dot indicator, click to switch    |
+| VoiceControl           | Bottom-center mic button | Toggle idle to listening, pulsing ring, tooltips |
+| LiquidGlassEnvironment | Animated background      | 4 fluid layers, speeds up when active={true}     |
+| GlassResult            | Search result card       | Glass morphism, hover lift, position props       |
+| GlassResearchField     | Research results grid    | 5 positioned items, depth layering               |
+| FloatingInformation    | Base floating card       | Drift animation, hover expand, pointer glow      |
+| ExpandedInformation    | Full-screen detail modal | Backdrop blur, connections list, close button    |
 
 ---
 
 ## Data Flow
 
 ### Voice Command Flow
-`
-User clicks mic
+
+`User clicks mic
        down
 VoiceControl.onClick to handleVoiceClick()
        down
@@ -305,19 +307,17 @@ setMode(detectedMode) + setPendingRequest(extractedRequest)
        down
 UI re-renders with new mode + request pre-filled
        down
-setTimeout(500ms) to voiceState = "idle", resetRecognition()
-`
+setTimeout(500ms) to voiceState = "idle", resetRecognition()`
 
 ### Manual Navigation Flow
-`
-User clicks ModeIndicator tab
+
+`User clicks ModeIndicator tab
        down
 onChange(mode) to setMode(mode)
        down
 UI re-renders with new mode component
        down
-pendingRequest preserved (not cleared on manual switch)
-`
+pendingRequest preserved (not cleared on manual switch)`
 
 ---
 
@@ -342,22 +342,29 @@ pendingRequest preserved (not cleared on manual switch)
 ## Development Commands
 
 `ash
+
 # Install dependencies
-npm install        # or bun install
+
+npm install # or bun install
 
 # Development server
-npm run dev        # http://localhost:8081
+
+npm run dev # http://localhost:8081
 
 # Production build
-npm run build      # outputs to .output/
+
+npm run build # outputs to .output/
 
 # Preview production build
+
 npm run preview
 
 # Lint
+
 npm run lint
 
 # Format
+
 npm run format
 `
 
@@ -374,14 +381,14 @@ npm run format
 
 ## Future Extensibility Points
 
-| Area | Current | Planned |
-|------|---------|---------|
-| AI Integration | Mock responses | Qwen / LLM via API |
-| Search | Mock data | Real search API (SerpAPI, Brave, etc.) |
-| Research | Mock data | Deep research agent |
-| Voice Output | None | TTS (Web Speech API speechSynthesis) |
-| Persistence | None | Conversation history, plan storage |
-| Multi-user | None | Auth + sync |
+| Area           | Current        | Planned                                |
+| -------------- | -------------- | -------------------------------------- |
+| AI Integration | Mock responses | Qwen / LLM via API                     |
+| Search         | Mock data      | Real search API (SerpAPI, Brave, etc.) |
+| Research       | Mock data      | Deep research agent                    |
+| Voice Output   | None           | TTS (Web Speech API speechSynthesis)   |
+| Persistence    | None           | Conversation history, plan storage     |
+| Multi-user     | None           | Auth + sync                            |
 
 ---
 
@@ -389,16 +396,16 @@ npm run format
 
 Open http://localhost:8081 and test:
 
-| Test | Command | Expected |
-|------|---------|----------|
-| 1 | "Turn on conversation mode" | Mode to Conversation |
-| 2 | "Turn on plan mode" | Mode to Plan |
-| 3 | "Turn on search mode" | Mode to Search |
-| 4 | "Turn on research mode" | Mode to Research |
-| 5 | "Switch to plan mode and help me organize my project" | Mode to Plan, request preserved |
-| 6 | (in Conversation) "What is JavaScript?" | Stays in Conversation |
-| 7 | "Research JavaScript closures" | Mode to Research |
+| Test | Command                                               | Expected                        |
+| ---- | ----------------------------------------------------- | ------------------------------- |
+| 1    | "Turn on conversation mode"                           | Mode to Conversation            |
+| 2    | "Turn on plan mode"                                   | Mode to Plan                    |
+| 3    | "Turn on search mode"                                 | Mode to Search                  |
+| 4    | "Turn on research mode"                               | Mode to Research                |
+| 5    | "Switch to plan mode and help me organize my project" | Mode to Plan, request preserved |
+| 6    | (in Conversation) "What is JavaScript?"               | Stays in Conversation           |
+| 7    | "Research JavaScript closures"                        | Mode to Research                |
 
 ---
 
-*Generated from codebase analysis - Finch v0.1.0*
+_Generated from codebase analysis - Finch v0.1.0_

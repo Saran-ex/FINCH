@@ -15,6 +15,10 @@ logs/
 npm-debug.log*
 yarn-error.log*
 
+# OS junk
+.DS_Store
+Thumbs.db
+
 # Scratch backup folders
 _prompt-backup-*/
 _model-picker-backup-*/
@@ -23,6 +27,13 @@ _conv-picker-backup-*/
 # Build output
 dist/
 build/
+# ...except the Electron branding + backend module marker: both are required
+# to package the installer and must be committed (negations need the parent
+# dir re-included first, otherwise git keeps ignoring everything under it).
+!electron/build/
+electron/build/*
+!electron/build/finch.ico
+!electron/build/backend-package.json
 
 # Third-party model / voice weights (749 MB total; GitHub rejects files > 100 MB)
 models/

@@ -14,7 +14,10 @@ export type AddTurnInput = {
   tokensOut: number | null;
 };
 
-export function addTurn(input: AddTurnInput): { user: Message; finch: Message } {
+export function addTurn(input: AddTurnInput): {
+  user: Message;
+  finch: Message;
+} {
   const user = insertMessage({
     conversationId: input.conversationId,
     role: "user",

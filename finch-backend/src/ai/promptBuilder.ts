@@ -17,7 +17,7 @@ function loadConfirmedMemory(): ConfirmedMemoryRow[] {
            FROM memory_entries e
            JOIN memory_batches b ON b.id = e.batch_id
           WHERE b.status = 'confirmed'
-          ORDER BY b.confirmed_at DESC, e.id DESC`
+          ORDER BY b.confirmed_at DESC, e.id DESC`,
       )
       .all() as ConfirmedMemoryRow[];
   } catch (err) {

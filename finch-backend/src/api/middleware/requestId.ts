@@ -9,7 +9,11 @@ declare global {
   }
 }
 
-export function requestId(req: Request, res: Response, next: NextFunction): void {
+export function requestId(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
   req.id = crypto.randomUUID();
   res.setHeader("X-Request-Id", req.id);
   next();

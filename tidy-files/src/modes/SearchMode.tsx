@@ -1,16 +1,47 @@
-import { FormEvent, useEffect, useState } from 'react';
-import { ArrowUp, Loader2, Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { FinchViewport } from '@/components/finch/FinchViewport';
-import { LiquidGlassEnvironment } from '@/components/finch/LiquidGlassEnvironment';
-import type { TurnResponse, WebSource, SearchSourceKind } from '@/lib/api';
-import { getRecentTurn } from '@/lib/api';
+import { FormEvent, useEffect, useState } from "react";
+import { ArrowUp, Loader2, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Globe } from "@/components/ui/cobe-globe";
+import { LiquidGlassEnvironment } from "@/components/finch/LiquidGlassEnvironment";
+import type { TurnResponse, WebSource, SearchSourceKind } from "@/lib/api";
+import { getRecentTurn } from "@/lib/api";
 import { useModeModels, resolveModelValue } from "@/lib/useModeModels";
 import { GlassResult } from "@/components/finch/GlassResult";
 import { ExpandedInformation } from "@/components/finch/ExpandedInformation";
 import { toSearchGlassResults, type SearchCardResult } from "@/lib/cardMapping";
 
-const stages = ['Searching…', 'Finding sources…', 'Comparing information…', 'Collecting results…'];
+const stages = ["Searching…", "Finding sources…", "Comparing information…", "Collecting results…"];
+
+const SEARCH_GLOBE_MARKERS = [
+  { id: "sf", location: [37.7595, -122.4367] as [number, number], label: "San Francisco" },
+  { id: "nyc", location: [40.7128, -74.006] as [number, number], label: "New York" },
+  { id: "london", location: [51.5074, -0.1278] as [number, number], label: "London" },
+  { id: "tokyo", location: [35.6762, 139.6503] as [number, number], label: "Tokyo" },
+  { id: "dubai", location: [25.2048, 55.2708] as [number, number], label: "Dubai" },
+  { id: "sydney", location: [-33.8688, 151.2093] as [number, number], label: "Sydney" },
+];
+
+const SEARCH_GLOBE_ARCS = [
+  {
+    id: "sf-tokyo",
+    from: [37.7595, -122.4367] as [number, number],
+    to: [35.6762, 139.6503] as [number, number],
+    label: "SF → Tokyo",
+  },
+  {
+    id: "nyc-london",
+    from: [40.7128, -74.006] as [number, number],
+    to: [51.5074, -0.1278] as [number, number],
+    label: "NYC → London",
+  },
+];
+
+// White, semi-transparent globe that reads on both light and dark themes —
+// the Globe canvas itself is rendered at 70% opacity internally.
+const SEARCH_GLOBE_BASE_COLOR: [number, number, number] = [1, 1, 1];
+const SEARCH_GLOBE_MARKER_COLOR: [number, number, number] = [0.3, 0.45, 0.85];
+const SEARCH_GLOBE_ARC_COLOR: [number, number, number] = [0.3, 0.45, 0.85];
+const SEARCH_GLOBE_GLOW_COLOR: [number, number, number] = [0.94, 0.93, 0.91];
 
 export function SearchMode({
   onSubmit,
@@ -19,10 +50,10 @@ export function SearchMode({
   onSubmit: (query: string, modelOverride?: string) => Promise<TurnResponse>;
   selectedModel?: string | undefined;
 }) {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [stage, setStage] = useState(0);
-  const [reply, setReply] = useState('');
+  const [reply, setReply] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sources, setSources] = useState<WebSource[]>([]);
   const [searchSource, setSearchSource] = useState<SearchSourceKind | undefined>(undefined);
@@ -33,7 +64,9 @@ export function SearchMode({
   useEffect(() => {
     if (!searching) return;
     if (stage >= stages.length - 1) {
-      const finish = window.setTimeout(() => { setSearching(false); }, 650);
+      const finish = window.setTimeout(() => {
+        setSearching(false);
+      }, 650);
       return () => window.clearTimeout(finish);
     }
     const timer = window.setTimeout(() => setStage((current) => current + 1), 650);
@@ -59,7 +92,9 @@ export function SearchMode({
       setStage(0);
       setSearching(false);
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -69,7 +104,7 @@ export function SearchMode({
     setIsSubmitting(true);
     setStage(0);
     setSearching(true);
-    setReply('');
+    setReply("");
     setSources([]);
     setSearchSource(undefined);
     setCards([]);
@@ -84,7 +119,7 @@ export function SearchMode({
       setSearchSource(result.searchSource);
       setCards(toSearchGlassResults(result.topicCards ?? [], result.webSources ?? []));
     } catch (err) {
-      setReply('Unable to reach the backend. Please try again.');
+      setReply("Unable to reach the backend. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -92,22 +127,44 @@ export function SearchMode({
 
   return (
     <LiquidGlassEnvironment active={searching}>
-      <section className='mode-scene discovery-scene' aria-label='Search mode'>
-        <FinchViewport immersed />
+      <section className="mode-scene discovery-scene" aria-label="Search mode">
+        <div className="globe-stage" aria-hidden="true">
+          <Globe
+            markers={SEARCH_GLOBE_MARKERS}
+            arcs={SEARCH_GLOBE_ARCS}
+            baseColor={SEARCH_GLOBE_BASE_COLOR}
+            markerColor={SEARCH_GLOBE_MARKER_COLOR}
+            arcColor={SEARCH_GLOBE_ARC_COLOR}
+            glowColor={SEARCH_GLOBE_GLOW_COLOR}
+          />
+        </div>
         {(searching || isSubmitting) && (
-          <div className='process-status' aria-live='polite'>
+          <div className="process-status" aria-live="polite">
             <span />
             {isSubmitting
-              ? (stage >= stages.length - 1
-                  ? 'Still working… this can take a minute'
-                  : stages[Math.min(stage, stages.length - 1)])
+              ? stage >= stages.length - 1
+                ? "Still working… this can take a minute"
+                : stages[Math.min(stage, stages.length - 1)]
               : stages[stage]}
           </div>
         )}
-        <div aria-live='polite' style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>{reply}</div>
+        <div
+          aria-live="polite"
+          style={{
+            position: "absolute",
+            width: 1,
+            height: 1,
+            overflow: "hidden",
+            clip: "rect(0 0 0 0)",
+          }}
+        >
+          {reply}
+        </div>
         {!isSubmitting && cards.length > 0 && (
-          <div className='information-field search-field'>
-            {cards.map(card => <GlassResult key={card.id} result={card} onSelect={() => setSelected(card)} />)}
+          <div className="information-field search-field">
+            {cards.map((card) => (
+              <GlassResult key={card.id} result={card} onSelect={() => setSelected(card)} />
+            ))}
           </div>
         )}
         {selected && (
@@ -120,23 +177,23 @@ export function SearchMode({
             onClose={() => setSelected(null)}
           />
         )}
-        <form className='search-composer' onSubmit={submit}>
-          <Search aria-hidden='true' />
+        <form className="search-composer" onSubmit={submit}>
+          <Search aria-hidden="true" />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder='Search beyond the surface'
-            aria-label='Search with Finch'
+            placeholder="Search beyond the surface"
+            aria-label="Search with Finch"
             disabled={isSubmitting}
           />
           <Button
-            variant='glassIcon'
-            size='icon'
-            type='submit'
-            aria-label='Begin search'
+            variant="glassIcon"
+            size="icon"
+            type="submit"
+            aria-label="Begin search"
             disabled={isSubmitting}
           >
-            {isSubmitting ? <Loader2 className='size-5 animate-spin' /> : <ArrowUp />}
+            {isSubmitting ? <Loader2 className="size-5 animate-spin" /> : <ArrowUp />}
           </Button>
         </form>
       </section>

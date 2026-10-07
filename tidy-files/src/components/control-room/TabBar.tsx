@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { Palette, Layers, Brain, FileText, Globe, SlidersHorizontal } from "lucide-react";
+import { Palette, Layers, Brain, FileText, Globe, SlidersHorizontal, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Tab = "theme" | "modes" | "memory" | "prompts" | "resources" | "organizer";
+type Tab = "theme" | "modes" | "memory" | "prompts" | "resources" | "organizer" | "about";
 
 interface TabBarProps {
   activeTab: Tab;
@@ -16,6 +16,7 @@ const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: st
   { id: "memory", label: "Memory", icon: Brain },
   { id: "prompts", label: "Prompts", icon: FileText },
   { id: "resources", label: "Resources", icon: Globe },
+  { id: "about", label: "About", icon: Info },
 ];
 
 export function TabBar({ activeTab, onChange }: TabBarProps) {

@@ -38,7 +38,12 @@ parentPort.postMessage({
 parentPort.on("message", (msg) => {
   if (!msg || msg.type !== "speak") return;
   try {
-    const audio = tts.generate({ text: msg.text, sid: msg.sid, speed });
+    const audio = tts.generate({
+      text: msg.text,
+      sid: msg.sid,
+      speed,
+      enableExternalBuffer: false,
+    });
     // No transferList: the addon's ArrayBuffer is not transferable, so
     // structured clone simply copies the samples (a few hundred KB).
     parentPort.postMessage({

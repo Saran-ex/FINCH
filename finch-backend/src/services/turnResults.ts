@@ -28,8 +28,14 @@ export function saveTurnResult(input: {
 
   try {
     db.prepare(
-      "INSERT INTO turn_results (conversation_id, mode, request, reply, payload) VALUES (?, ?, ?, ?, ?)"
-    ).run(input.conversationId, input.mode, input.request, input.reply, payloadJson);
+      "INSERT INTO turn_results (conversation_id, mode, request, reply, payload) VALUES (?, ?, ?, ?, ?)",
+    ).run(
+      input.conversationId,
+      input.mode,
+      input.request,
+      input.reply,
+      payloadJson,
+    );
   } catch (err) {
     logger.warn("turn results: failed to save turn result", {
       mode: input.mode,
@@ -40,7 +46,7 @@ export function saveTurnResult(input: {
 
 export function getMostRecentTurnResult(
   mode: "search" | "research",
-  hoursBack: number
+  hoursBack: number,
 ): {
   request: string;
   reply: string;
@@ -55,7 +61,7 @@ export function getMostRecentTurnResult(
            FROM turn_results
           WHERE mode = ? AND created_at > datetime('now', ?)
           ORDER BY created_at DESC
-          LIMIT 1`
+          LIMIT 1`,
       )
       .get(mode, `-${hoursBack} hours`) as
       | {
@@ -102,14 +108,17 @@ export type TurnResultRow = {
   createdAt: string;
 };
 
-export function listTurnResultsInRange(fromIso: string, toIso: string): TurnResultRow[] {
+export function listTurnResultsInRange(
+  fromIso: string,
+  toIso: string,
+): TurnResultRow[] {
   try {
     const rows = db
       .prepare(
         `SELECT id, conversation_id, mode, request, reply, payload, created_at
            FROM turn_results
           WHERE created_at > datetime(?) AND created_at <= datetime(?)
-          ORDER BY created_at ASC`
+          ORDER BY created_at ASC`,
       )
       .all(fromIso, toIso) as Array<{
       id: number;
@@ -166,7 +175,9 @@ const COMPACT_REQUEST_MAX = 300;
 
 function truncateRequest(value: unknown): string {
   const text = typeof value === "string" ? value : "";
-  return text.length > COMPACT_REQUEST_MAX ? `${text.slice(0, COMPACT_REQUEST_MAX)}…` : text;
+  return text.length > COMPACT_REQUEST_MAX
+    ? `${text.slice(0, COMPACT_REQUEST_MAX)}…`
+    : text;
 }
 
 function readHeadline(card: unknown): string | null {
@@ -188,23 +199,30 @@ export function projectTurnForSummary(row: TurnResultRow): CompactTurn {
         ? path[0]
         : null;
 
-    const webSources = Array.isArray(payload.webSources) ? payload.webSources : [];
+    const webSources = Array.isArray(payload.webSources)
+      ? payload.webSources
+      : [];
     const topSources: Array<{ title: string; domain: string }> = [];
     for (const entry of webSources.slice(0, 3)) {
       if (entry === null || typeof entry !== "object") continue;
       const source = entry as { title?: unknown; domain?: unknown };
-      if (typeof source.title !== "string" || typeof source.domain !== "string") continue;
+      if (typeof source.title !== "string" || typeof source.domain !== "string")
+        continue;
       topSources.push({ title: source.title, domain: source.domain });
     }
 
-    const topicCards = Array.isArray(payload.topicCards) ? payload.topicCards : [];
+    const topicCards = Array.isArray(payload.topicCards)
+      ? payload.topicCards
+      : [];
     const topCards: string[] = [];
     for (const card of topicCards.slice(0, 3)) {
       const headline = readHeadline(card);
       if (headline !== null) topCards.push(headline);
     }
 
-    const directions = Array.isArray(payload.directions) ? payload.directions : [];
+    const directions = Array.isArray(payload.directions)
+      ? payload.directions
+      : [];
     const directionCards: string[] = [];
     for (const card of directions.slice(0, 5)) {
       const headline = readHeadline(card);

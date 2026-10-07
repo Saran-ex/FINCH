@@ -1,13 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { config } from "../config/index.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const backendRoot = path.resolve(__dirname, "../..");
-
-const logsDir = path.join(backendRoot, "logs");
+// Per-user app-data folder (LOG_DIR env override) — created on first run so
+// logs never land inside the backend package itself.
+const logsDir = config.logDir;
 if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
 }
@@ -28,7 +25,11 @@ function shouldLog(level: string): boolean {
   return levelPriority[level] >= configuredPriority;
 }
 
-function writeLog(level: string, message: string, meta?: Record<string, unknown>): void {
+function writeLog(
+  level: string,
+  message: string,
+  meta?: Record<string, unknown>,
+): void {
   if (!shouldLog(level)) return;
 
   const entry = {
@@ -63,10 +64,14 @@ function writeLog(level: string, message: string, meta?: Record<string, unknown>
 }
 
 export const logger = {
-  debug: (msg: string, meta?: Record<string, unknown>) => writeLog("debug", msg, meta),
-  info: (msg: string, meta?: Record<string, unknown>) => writeLog("info", msg, meta),
-  warn: (msg: string, meta?: Record<string, unknown>) => writeLog("warn", msg, meta),
-  error: (msg: string, meta?: Record<string, unknown>) => writeLog("error", msg, meta),
+  debug: (msg: string, meta?: Record<string, unknown>) =>
+    writeLog("debug", msg, meta),
+  info: (msg: string, meta?: Record<string, unknown>) =>
+    writeLog("info", msg, meta),
+  warn: (msg: string, meta?: Record<string, unknown>) =>
+    writeLog("warn", msg, meta),
+  error: (msg: string, meta?: Record<string, unknown>) =>
+    writeLog("error", msg, meta),
 };
 
 // One line per voice-pipeline stage. `voiceTurn` is the shared id sent by the
@@ -74,6 +79,11 @@ export const logger = {
 // can be grepped together:  timing turn=vt-... stage=transcribe-done ms=843
 // Measurement stages: transcribe-done (whisper), first-token (Qwen TTFT),
 // first-audio-after-text (proxy for Piper/Kitten first-audio).
-export function timingLine(voiceTurn: string, stage: string, ms: number, extra?: string): string {
+export function timingLine(
+  voiceTurn: string,
+  stage: string,
+  ms: number,
+  extra?: string,
+): string {
   return `timing turn=${voiceTurn} stage=${stage} ms=${ms}${extra ? ` ${extra}` : ""}`;
 }

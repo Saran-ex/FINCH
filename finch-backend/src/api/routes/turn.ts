@@ -1,5 +1,10 @@
 import { Router } from "express";
-import { processTurn, processTurnStream, type TurnInput, type TurnResult } from "../../ai/turnService.js";
+import {
+  processTurn,
+  processTurnStream,
+  type TurnInput,
+  type TurnResult,
+} from "../../ai/turnService.js";
 import { validateTurnRequest } from "../schemas/turnSchema.js";
 import { logger, timingLine } from "../../services/logger.js";
 import { config } from "../../config/index.js";
@@ -11,7 +16,8 @@ router.post("/", async (req, res, next) => {
     const input = validateTurnRequest(req.body);
 
     const header = req.headers["x-voice-turn-id"];
-    const voiceTurn = typeof header === "string" && header.length > 0 ? header : "-";
+    const voiceTurn =
+      typeof header === "string" && header.length > 0 ? header : "-";
     const turnStart = Date.now();
     const result = await processTurn(input);
     logger.info(timingLine(voiceTurn, "ai-reply", Date.now() - turnStart));
@@ -64,7 +70,8 @@ router.post("/stream", async (req, res, next) => {
   }
 
   const header = req.headers["x-voice-turn-id"];
-  const voiceTurn = typeof header === "string" && header.length > 0 ? header : "-";
+  const voiceTurn =
+    typeof header === "string" && header.length > 0 ? header : "-";
   const turnStart = Date.now();
 
   res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
@@ -86,7 +93,9 @@ router.post("/stream", async (req, res, next) => {
   let deltaCount = 0;
   // Stamped on delta/end only in sequential mode (absent in streaming mode).
   const pipelineField =
-    config.voicePipelineMode === "sequential" ? { pipeline: config.voicePipelineMode } : {};
+    config.voicePipelineMode === "sequential"
+      ? { pipeline: config.voicePipelineMode }
+      : {};
   const write = (payload: Record<string, unknown>): void => {
     if (clientClosed || res.destroyed || res.writableEnded) return;
     try {
@@ -108,7 +117,9 @@ router.post("/stream", async (req, res, next) => {
         (delta) => {
           if (deltaCount === 0) {
             // First token from Qwen (manual measurement #2: transcript ready → first token).
-            logger.info(timingLine(voiceTurn, "first-token", Date.now() - turnStart));
+            logger.info(
+              timingLine(voiceTurn, "first-token", Date.now() - turnStart),
+            );
           }
           emitDelta(delta);
           // Returning false stops Ollama as soon as the client is gone.
@@ -118,9 +129,11 @@ router.post("/stream", async (req, res, next) => {
         () => {
           // Reply text complete: the client can flush its speech buffer now
           // instead of waiting for "done".
-          logger.info(timingLine(voiceTurn, "ai-stream-complete", Date.now() - turnStart));
+          logger.info(
+            timingLine(voiceTurn, "ai-stream-complete", Date.now() - turnStart),
+          );
           write({ type: "end", ...pipelineField });
-        }
+        },
       );
     } else {
       // AI_STREAM=0: old single-shot behaviour carried over the same envelope,
@@ -128,10 +141,14 @@ router.post("/stream", async (req, res, next) => {
       result = await processTurn(input);
       if (result.reply) {
         // Same measurement stage as the streaming path (reply = one "token").
-        logger.info(timingLine(voiceTurn, "first-token", Date.now() - turnStart));
+        logger.info(
+          timingLine(voiceTurn, "first-token", Date.now() - turnStart),
+        );
         emitDelta(result.reply);
       }
-      logger.info(timingLine(voiceTurn, "ai-stream-complete", Date.now() - turnStart));
+      logger.info(
+        timingLine(voiceTurn, "ai-stream-complete", Date.now() - turnStart),
+      );
       write({ type: "end", ...pipelineField });
     }
 
@@ -163,10 +180,15 @@ router.post("/stream", async (req, res, next) => {
     });
   } catch (err) {
     if (clientClosed) {
-      logger.debug("turn: stream aborted (client closed)", { requestId: req.id });
+      logger.debug("turn: stream aborted (client closed)", {
+        requestId: req.id,
+      });
     } else {
       logger.error("turn: stream failed", { err, requestId: req.id });
-      write({ type: "error", message: err instanceof Error ? err.message : "turn failed" });
+      write({
+        type: "error",
+        message: err instanceof Error ? err.message : "turn failed",
+      });
     }
   } finally {
     if (!res.writableEnded && !res.destroyed) res.end();

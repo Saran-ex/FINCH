@@ -1,4 +1,4 @@
-import { cleanSearchQuery } from './queryCleaner';
+import { cleanSearchQuery } from "./queryCleaner";
 
 const DEFAULT_TIMEOUT_MS = 25000;
 const QUESTION_MAX_LENGTH = 300;
@@ -13,24 +13,30 @@ function cleanGenerated(raw: string): string {
     .split(/\r?\n/)
     .map((line) => line.trim())
     .find((line) => line.length > 0);
-  if (firstLine === undefined) return '';
+  if (firstLine === undefined) return "";
 
   let text = firstLine;
-  while (text.length > 0 && (text.startsWith('"') || text.startsWith('`') || text.startsWith("'"))) {
+  while (
+    text.length > 0 &&
+    (text.startsWith('"') || text.startsWith("`") || text.startsWith("'"))
+  ) {
     text = text.slice(1);
   }
-  while (text.length > 0 && (text.endsWith('"') || text.endsWith('`') || text.endsWith("'"))) {
+  while (
+    text.length > 0 &&
+    (text.endsWith('"') || text.endsWith("`") || text.endsWith("'"))
+  ) {
     text = text.slice(0, -1);
   }
 
-  text = text.replace(/^(search\s+query|query)\s*:/i, '');
+  text = text.replace(/^(search\s+query|query)\s*:/i, "");
 
-  const disallowedReplaced = text.replace(/[^\p{L}\p{N}'\-]/gu, ' ');
-  const collapsed = disallowedReplaced.replace(/\s+/g, ' ').trim();
-  if (collapsed.length === 0) return '';
+  const disallowedReplaced = text.replace(/[^\p{L}\p{N}'\-]/gu, " ");
+  const collapsed = disallowedReplaced.replace(/\s+/g, " ").trim();
+  if (collapsed.length === 0) return "";
 
-  const words = collapsed.split(' ').slice(0, RESULT_MAX_WORDS);
-  return words.join(' ').slice(0, RESULT_MAX_LENGTH).trim();
+  const words = collapsed.split(" ").slice(0, RESULT_MAX_WORDS);
+  return words.join(" ").slice(0, RESULT_MAX_LENGTH).trim();
 }
 
 // Safety guard: at least one word of 3+ characters must occur in the question.
@@ -45,11 +51,11 @@ function overlapsQuestion(cleaned: string, question: string): boolean {
 function buildPrompt(question: string): string {
   const cut = question.slice(0, QUESTION_MAX_LENGTH);
   return (
-    'Rewrite the question as a short web search query of 2 to 6 key words. ' +
-    'Fix spelling mistakes. Remove filler words. Keep names and topics. ' +
-    'Output only the query and nothing else.\nQuestion: ' +
+    "Rewrite the question as a short web search query of 2 to 6 key words. " +
+    "Fix spelling mistakes. Remove filler words. Keep names and topics. " +
+    "Output only the query and nothing else.\nQuestion: " +
     cut +
-    '\nQuery:'
+    "\nQuery:"
   );
 }
 
@@ -57,14 +63,17 @@ function buildPrompt(question: string): string {
 async function raceGenerate(
   generate: (prompt: string) => Promise<string>,
   prompt: string,
-  timeoutMs: number
+  timeoutMs: number,
 ): Promise<string> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
       generate(prompt),
       new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error(`rewrite timed out after ${timeoutMs} ms`)), timeoutMs);
+        timer = setTimeout(
+          () => reject(new Error(`rewrite timed out after ${timeoutMs} ms`)),
+          timeoutMs,
+        );
       }),
     ]);
   } finally {
@@ -75,13 +84,13 @@ async function raceGenerate(
 export async function rewriteSearchQuery(
   question: string,
   generate: (prompt: string) => Promise<string>,
-  options: { timeoutMs?: number } = {}
+  options: { timeoutMs?: number } = {},
 ): Promise<string> {
   const fallback = cleanSearchQuery(question);
   const trimmed = question.trim();
 
   try {
-    if (trimmed === '') return fallback;
+    if (trimmed === "") return fallback;
 
     const words = trimmed.split(/\s+/).filter((word) => word.length > 0);
     if (words.length < 3) return fallback;

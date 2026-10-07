@@ -8,16 +8,18 @@ import routes from "@/api/routes/index.js";
 import { NotFoundError } from "@/services/errors.js";
 
 const app = express();
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (config.corsOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error(`CORS blocked: ${origin}`));
-  },
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (config.corsOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS blocked: ${origin}`));
+    },
+    credentials: true,
+  }),
+);
 // Arrival timestamp, captured before any body parsing so routes can log how
 // long an upload took (voice timing logs only — nothing else reads this).
 app.use((_req, res, next) => {

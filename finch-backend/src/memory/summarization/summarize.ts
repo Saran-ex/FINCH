@@ -1,20 +1,20 @@
-import { selectMessages } from './selectMessages.js';
-import { ollamaAdapter } from '../../models/ollamaAdapter.js';
-import { getAlias } from '../../models/registry.js';
+import { selectMessages } from "./selectMessages.js";
+import { ollamaAdapter } from "../../models/ollamaAdapter.js";
+import { getAlias } from "../../models/registry.js";
 import {
   listTurnResultsInRange,
   projectTurnForSummary,
   type CompactTurn,
-} from '../../services/turnResults.js';
-import { logger } from '../../services/logger.js';
+} from "../../services/turnResults.js";
+import { logger } from "../../services/logger.js";
 
 const NUM_PREDICT = 1024;
 const TEMPERATURE = 0.2;
 const MAX_CHUNK_MESSAGES = 40;
 const MAX_CHUNK_CHARS = 6000;
 const ASSISTANT_PROMPT_LIMIT = 200;
-const ASSISTANT_ROLES = new Set(['assistant', 'finch']);
-const MODES_WITHOUT_ASSISTANT = new Set(['plan', 'search', 'research']);
+const ASSISTANT_ROLES = new Set(["assistant", "finch"]);
+const MODES_WITHOUT_ASSISTANT = new Set(["plan", "search", "research"]);
 const GENERATE_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 1500;
 const MAX_TURN_RESULT_TURNS = 40;
@@ -85,7 +85,10 @@ export interface SummarizeBatchResult {
 
 type SelectResult = ReturnType<typeof selectMessages>;
 
-function splitByLimits(messages: ChunkMessage[], mode: string): ChunkMessage[][] {
+function splitByLimits(
+  messages: ChunkMessage[],
+  mode: string,
+): ChunkMessage[][] {
   // plan/search/research: no message-count cap, size measured only on the
   // text actually sent to the model (user messages), so one mode+day stays
   // one chunk unless the sent text exceeds MAX_CHUNK_CHARS.
@@ -134,7 +137,7 @@ function buildChunks(grouped: SelectResult): Chunk[] {
 
   const chunks: Chunk[] = [];
   for (const [key, messages] of byModeDay) {
-    const sep = key.indexOf('|');
+    const sep = key.indexOf("|");
     const mode = key.slice(0, sep);
     const date = key.slice(sep + 1);
     for (const part of splitByLimits(messages, mode)) {
@@ -158,14 +161,15 @@ function truncateForPrompt(msg: ChunkMessage): string {
   return `${msg.content.slice(0, ASSISTANT_PROMPT_LIMIT)}...`;
 }
 
-const USER_ONLY_NOTE = 'Only the user\'s messages are shown. Do not mention Finch or what Finch did.';
+const USER_ONLY_NOTE =
+  "Only the user's messages are shown. Do not mention Finch or what Finch did.";
 
 function buildPrompt(messages: ChunkMessage[], mode: string): string {
   const includeAssistant = !MODES_WITHOUT_ASSISTANT.has(mode);
   const lines = messages
     .filter((m) => includeAssistant || !isAssistantRole(m.role))
     .map((m) => `[${m.created_at}] ${m.role}: ${truncateForPrompt(m)}`)
-    .join('\n');
+    .join("\n");
   if (includeAssistant) {
     return lines;
   }
@@ -177,56 +181,94 @@ function elapsedSeconds(startedAt: number): number {
 }
 
 const NON_SUBSTANTIVE_LABELS = new Set([
-  'none',
-  'n a',
-  'nothing',
-  'no entries',
-  'no entry',
-  'no meaningful content',
-  'no substantive content',
-  'greeting',
-  'greetings',
-  'repeated greeting',
-  'repeated greetings',
-  'greeting and introduction',
-  'greetings and introduction',
-  'greeting and mode switches',
-  'greetings and mode switches',
-  'mode switch',
-  'mode switches',
-  'mode switching',
-  'mode switch request',
-  'mode switch requests',
-  'plan mode request',
-  'plan mode switch',
-  'research mode request',
-  'search mode request',
-  'empty exchange',
-  'empty exchanges',
-  'small talk',
-  'chit chat',
-  'filler',
+  "none",
+  "n a",
+  "nothing",
+  "no entries",
+  "no entry",
+  "no meaningful content",
+  "no substantive content",
+  "greeting",
+  "greetings",
+  "repeated greeting",
+  "repeated greetings",
+  "greeting and introduction",
+  "greetings and introduction",
+  "greeting and mode switches",
+  "greetings and mode switches",
+  "mode switch",
+  "mode switches",
+  "mode switching",
+  "mode switch request",
+  "mode switch requests",
+  "plan mode request",
+  "plan mode switch",
+  "research mode request",
+  "search mode request",
+  "empty exchange",
+  "empty exchanges",
+  "small talk",
+  "chit chat",
+  "filler",
 ]);
 
 const FLUFF_WORDS = new Set([
-  'a', 'an', 'and', 'or', 'the', 'of', 'to', 'in', 'for', 'with', 'about',
-  'no', 'none', 'nothing', 'greeting', 'greetings', 'hello', 'hi', 'hey',
-  'mode', 'modes', 'switch', 'switches', 'switching', 'request', 'requests',
-  'repeated', 'repeat', 'small', 'talk', 'chit', 'empty', 'exchange',
-  'exchanges', 'filler', 'misc', 'miscellaneous', 'content', 'substantive',
-  'meaningful', 'introduction', 'introductions',
+  "a",
+  "an",
+  "and",
+  "or",
+  "the",
+  "of",
+  "to",
+  "in",
+  "for",
+  "with",
+  "about",
+  "no",
+  "none",
+  "nothing",
+  "greeting",
+  "greetings",
+  "hello",
+  "hi",
+  "hey",
+  "mode",
+  "modes",
+  "switch",
+  "switches",
+  "switching",
+  "request",
+  "requests",
+  "repeated",
+  "repeat",
+  "small",
+  "talk",
+  "chit",
+  "empty",
+  "exchange",
+  "exchanges",
+  "filler",
+  "misc",
+  "miscellaneous",
+  "content",
+  "substantive",
+  "meaningful",
+  "introduction",
+  "introductions",
 ]);
 
 function normalizeLabel(value: string): string {
   return value
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
 function isFluffOnly(value: string): boolean {
-  const words = normalizeLabel(value).split(' ').filter((w) => w.length > 0);
+  const words = normalizeLabel(value)
+    .split(" ")
+    .filter((w) => w.length > 0);
   if (words.length === 0) {
     return true;
   }
@@ -245,13 +287,20 @@ function isNonSubstantiveLabel(value: string): boolean {
     return true;
   }
   // titles such as "Plan Mode Switch" / "Research Mode Request"
-  if (/(^|\s)(mode switches?|switching modes?|mode requests?|mode changes?)$/.test(label)) {
+  if (
+    /(^|\s)(mode switches?|switching modes?|mode requests?|mode changes?)$/.test(
+      label,
+    )
+  ) {
     return true;
   }
   return false;
 }
 
-function isSubstantiveEntry(entry: { title: string; summary: string }): boolean {
+function isSubstantiveEntry(entry: {
+  title: string;
+  summary: string;
+}): boolean {
   if (isNonSubstantiveLabel(entry.title)) {
     return false;
   }
@@ -279,39 +328,44 @@ function delay(ms: number): Promise<void> {
 }
 
 type ChunkOutcome =
-  | { status: 'entries'; entries: Array<{ title: string; summary: string }> }
-  | { status: 'none' }
-  | { status: 'unparseable'; raw: string }
-  | { status: 'error'; error: string };
+  | { status: "entries"; entries: Array<{ title: string; summary: string }> }
+  | { status: "none" }
+  | { status: "unparseable"; raw: string }
+  | { status: "error"; error: string };
 
 // The ollama adapter has a fixed per-call timeout with no override option,
 // so transient failures are handled here with bounded retries.
 async function generateChunk(
   prompt: string,
   systemPrompt: string,
-  modelAlias: string
+  modelAlias: string,
 ): Promise<ChunkOutcome> {
-  let lastError = '';
-  let lastRaw = '';
+  let lastError = "";
+  let lastRaw = "";
   const alias = getAlias(modelAlias);
 
   for (let attempt = 1; attempt <= GENERATE_ATTEMPTS; attempt++) {
     try {
-      const result = await ollamaAdapter.generate(modelAlias, alias.ollamaModel, prompt, {
-        systemPrompt,
-        temperature: TEMPERATURE,
-        maxTokens: NUM_PREDICT,
-      });
+      const result = await ollamaAdapter.generate(
+        modelAlias,
+        alias.ollamaModel,
+        prompt,
+        {
+          systemPrompt,
+          temperature: TEMPERATURE,
+          maxTokens: NUM_PREDICT,
+        },
+      );
       const raw = result.text.trim();
       if (/^NONE\b/i.test(raw)) {
-        return { status: 'none' };
+        return { status: "none" };
       }
       const parsed = parseEntries(raw);
       if (parsed.length > 0) {
-        return { status: 'entries', entries: parsed };
+        return { status: "entries", entries: parsed };
       }
       lastRaw = raw;
-      logger.warn('summarize chunk unparseable', {
+      logger.warn("summarize chunk unparseable", {
         attempt,
         maxAttempts: GENERATE_ATTEMPTS,
         willRetry: attempt < GENERATE_ATTEMPTS,
@@ -319,7 +373,7 @@ async function generateChunk(
       });
     } catch (err) {
       lastError = err instanceof Error ? err.message : String(err);
-      logger.warn('summarize chunk attempt failed', {
+      logger.warn("summarize chunk attempt failed", {
         attempt,
         maxAttempts: GENERATE_ATTEMPTS,
         willRetry: attempt < GENERATE_ATTEMPTS,
@@ -333,9 +387,9 @@ async function generateChunk(
   }
 
   if (lastRaw.length > 0) {
-    return { status: 'unparseable', raw: lastRaw };
+    return { status: "unparseable", raw: lastRaw };
   }
-  return { status: 'error', error: lastError || 'unknown error' };
+  return { status: "error", error: lastError || "unknown error" };
 }
 
 function parseEntries(text: string): Array<{ title: string; summary: string }> {
@@ -358,7 +412,7 @@ function parseEntries(text: string): Array<{ title: string; summary: string }> {
 
 export async function summarizeBatch(
   days: 7 | 30,
-  modelAlias: string
+  modelAlias: string,
 ): Promise<SummarizeBatchResult> {
   const grouped = selectMessages(days);
   const chunks = buildChunks(grouped);
@@ -381,11 +435,11 @@ export async function summarizeBatch(
     const outcome = await generateChunk(prompt, SYSTEM_PROMPT, modelAlias);
     const seconds = elapsedSeconds(startedAt);
 
-    if (outcome.status === 'error') {
-      logger.error('summarize chunk', {
+    if (outcome.status === "error") {
+      logger.error("summarize chunk", {
         ...logBase,
         seconds,
-        outcome: 'failed',
+        outcome: "failed",
         error: outcome.error,
       });
       failedChunks.push({
@@ -397,50 +451,52 @@ export async function summarizeBatch(
       continue;
     }
 
-    if (outcome.status === 'none') {
-      logger.info('summarize chunk', { ...logBase, seconds, outcome: 'NONE' });
+    if (outcome.status === "none") {
+      logger.info("summarize chunk", { ...logBase, seconds, outcome: "NONE" });
       skippedIds.push(...messageIds);
       continue;
     }
 
-    if (outcome.status === 'unparseable') {
-      logger.error('summarize chunk', {
+    if (outcome.status === "unparseable") {
+      logger.error("summarize chunk", {
         ...logBase,
         seconds,
-        outcome: 'failed',
-        error: 'unparseable model output',
+        outcome: "failed",
+        error: "unparseable model output",
         raw: outcome.raw.slice(0, 300),
       });
       failedChunks.push({
         mode: chunk.mode,
         date: chunk.date,
         messageIds,
-        error: 'unparseable model output',
+        error: "unparseable model output",
       });
       continue;
     }
 
     const applySafetyNet = MODES_WITHOUT_ASSISTANT.has(chunk.mode);
     const keptEntries = outcome.entries.filter(
-      (entry) => isSubstantiveEntry(entry) && (!applySafetyNet || passesSafetyNet(entry))
+      (entry) =>
+        isSubstantiveEntry(entry) &&
+        (!applySafetyNet || passesSafetyNet(entry)),
     );
     const droppedCount = outcome.entries.length - keptEntries.length;
 
     if (keptEntries.length === 0) {
-      logger.info('summarize chunk', {
+      logger.info("summarize chunk", {
         ...logBase,
         seconds,
-        outcome: 'NONE',
+        outcome: "NONE",
         droppedCount,
       });
       skippedIds.push(...messageIds);
       continue;
     }
 
-    logger.info('summarize chunk', {
+    logger.info("summarize chunk", {
       ...logBase,
       seconds,
-      outcome: 'entries',
+      outcome: "entries",
       entryCount: keptEntries.length,
       droppedCount,
     });
@@ -465,8 +521,8 @@ export async function summarizeBatch(
 }
 
 function formatTurnBlock(turn: CompactTurn): string {
-  const when = turn.createdAt.slice(0, 16).replace('T', ' ');
-  const label = turn.mode === 'research' ? 'RESEARCH' : 'SEARCH';
+  const when = turn.createdAt.slice(0, 16).replace("T", " ");
+  const label = turn.mode === "research" ? "RESEARCH" : "SEARCH";
   const request =
     turn.request.length > FORMAT_REQUEST_MAX
       ? `${turn.request.slice(0, FORMAT_REQUEST_MAX)}...`
@@ -476,16 +532,16 @@ function formatTurnBlock(turn: CompactTurn): string {
     lines.push(`direction: ${turn.direction}`);
   }
   if (turn.directionsOnly && turn.directionCards.length > 0) {
-    lines.push(`offered directions: ${turn.directionCards.join(' | ')}`);
+    lines.push(`offered directions: ${turn.directionCards.join(" | ")}`);
   }
   if (turn.topSources.length > 0) {
     const sources = turn.topSources.map((s) => `${s.title} (${s.domain})`);
-    lines.push(`sources: ${sources.join(' | ')}`);
+    lines.push(`sources: ${sources.join(" | ")}`);
   }
   if (turn.topCards.length > 0) {
-    lines.push(`cards: ${turn.topCards.join(' | ')}`);
+    lines.push(`cards: ${turn.topCards.join(" | ")}`);
   }
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 type TurnChunk = { mode: string; date: string; blocks: string[] };
@@ -533,7 +589,7 @@ function buildTurnChunks(turns: CompactTurn[]): TurnChunk[] {
 // returns an empty result instead of breaking the messages pass.
 export async function summarizeTurnResults(
   days: 7 | 30,
-  modelAlias: string
+  modelAlias: string,
 ): Promise<SummarizeBatchResult> {
   const entries: MemoryEntryDraft[] = [];
   const failedChunks: FailedChunk[] = [];
@@ -541,15 +597,17 @@ export async function summarizeTurnResults(
   try {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
-    const fromIso = cutoff.toISOString().split('T')[0];
+    const fromIso = cutoff.toISOString().split("T")[0];
     const toIso = new Date().toISOString();
     const rows = listTurnResultsInRange(fromIso, toIso);
-    const compact = rows.slice(-MAX_TURN_RESULT_TURNS).map(projectTurnForSummary);
+    const compact = rows
+      .slice(-MAX_TURN_RESULT_TURNS)
+      .map(projectTurnForSummary);
     const chunks = buildTurnChunks(compact);
 
     for (const chunk of chunks) {
       const messageIds: number[] = [];
-      const prompt = chunk.blocks.join('\n');
+      const prompt = chunk.blocks.join("\n");
       const startedAt = Date.now();
       const logBase = {
         mode: chunk.mode,
@@ -558,14 +616,18 @@ export async function summarizeTurnResults(
         promptChars: prompt.length,
       };
 
-      const outcome = await generateChunk(prompt, STRUCTURED_SYSTEM_PROMPT, modelAlias);
+      const outcome = await generateChunk(
+        prompt,
+        STRUCTURED_SYSTEM_PROMPT,
+        modelAlias,
+      );
       const seconds = elapsedSeconds(startedAt);
 
-      if (outcome.status === 'error') {
-        logger.error('summarize turn results chunk', {
+      if (outcome.status === "error") {
+        logger.error("summarize turn results chunk", {
           ...logBase,
           seconds,
-          outcome: 'failed',
+          outcome: "failed",
           error: outcome.error,
         });
         failedChunks.push({
@@ -577,25 +639,29 @@ export async function summarizeTurnResults(
         continue;
       }
 
-      if (outcome.status === 'unparseable') {
-        logger.error('summarize turn results chunk', {
+      if (outcome.status === "unparseable") {
+        logger.error("summarize turn results chunk", {
           ...logBase,
           seconds,
-          outcome: 'failed',
-          error: 'unparseable model output',
+          outcome: "failed",
+          error: "unparseable model output",
           raw: outcome.raw.slice(0, 300),
         });
         failedChunks.push({
           mode: chunk.mode,
           date: chunk.date,
           messageIds,
-          error: 'unparseable model output',
+          error: "unparseable model output",
         });
         continue;
       }
 
-      if (outcome.status === 'none') {
-        logger.info('summarize turn results chunk', { ...logBase, seconds, outcome: 'NONE' });
+      if (outcome.status === "none") {
+        logger.info("summarize turn results chunk", {
+          ...logBase,
+          seconds,
+          outcome: "NONE",
+        });
         continue;
       }
 
@@ -603,19 +669,19 @@ export async function summarizeTurnResults(
       const droppedCount = outcome.entries.length - keptEntries.length;
 
       if (keptEntries.length === 0) {
-        logger.info('summarize turn results chunk', {
+        logger.info("summarize turn results chunk", {
           ...logBase,
           seconds,
-          outcome: 'NONE',
+          outcome: "NONE",
           droppedCount,
         });
         continue;
       }
 
-      logger.info('summarize turn results chunk', {
+      logger.info("summarize turn results chunk", {
         ...logBase,
         seconds,
-        outcome: 'entries',
+        outcome: "entries",
         entryCount: keptEntries.length,
         droppedCount,
       });
@@ -632,7 +698,7 @@ export async function summarizeTurnResults(
       }
     }
   } catch (err) {
-    logger.error('summarize turn results pass failed', {
+    logger.error("summarize turn results pass failed", {
       error: err instanceof Error ? err.message : String(err),
     });
   }

@@ -31,7 +31,9 @@ export function parseAllowed(raw: string | null): string[] {
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter((a): a is string => typeof a === "string") : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((a): a is string => typeof a === "string")
+      : [];
   } catch {
     return [];
   }
@@ -78,7 +80,9 @@ export function resolveAllowedAliases(mode: Mode): string[] {
     .filter((a) => a.enabled)
     .map((a) => a.alias);
 
-  const stored = config.allowedAliases.filter((alias) => enabled.includes(alias));
+  const stored = config.allowedAliases.filter((alias) =>
+    enabled.includes(alias),
+  );
   if (stored.length > 0) return stored;
   return enabled;
 }

@@ -38,6 +38,7 @@ function safeParse<T>(json: string, fallback: T): T {
 }
 
 function applyThemeToDocument(theme: ThemeSettings): void {
+  if (typeof document === "undefined") return;
   const root = document.documentElement;
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   const effectiveTheme = theme.theme === "system" ? (prefersDark ? "dark" : "light") : theme.theme;
@@ -57,6 +58,11 @@ class ControlRoomStore {
   private saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
+    // SSR / non-browser guard: the store is safe to instantiate anywhere.
+    if (typeof window === "undefined" || typeof window.localStorage === "undefined") {
+      this.state = { ...DEFAULT_STATE };
+      return;
+    }
     const stored = localStorage.getItem(STORAGE_KEY);
     const parsed = stored ? safeParse<Record<string, unknown>>(stored, {}) : {};
     // Discard legacy prompt text: the backend `prompts` table is the only source.
@@ -66,6 +72,20 @@ class ControlRoomStore {
       ...(parsed as Partial<ControlRoomState>),
     };
     applyThemeToDocument(this.state.theme);
+
+    // Flush the debounced write before the tab closes so a quick
+    // change-then-close never loses the stored preference.
+    window.addEventListener("beforeunload", () => {
+      if (this.saveTimeout) {
+        clearTimeout(this.saveTimeout);
+        this.saveTimeout = null;
+      }
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+      } catch {
+        // Storage unavailable; nothing more to do.
+      }
+    });
   }
 
   private notify(): void {

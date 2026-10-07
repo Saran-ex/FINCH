@@ -22,37 +22,40 @@ function toConversation(r: Row): Conversation {
   };
 }
 
-export function createConversation(mode: Mode, title: string | null = null): Conversation {
-  const info = db.prepare(
-    "INSERT INTO conversations (title, mode) VALUES (?, ?)"
-  ).run(title, mode);
+export function createConversation(
+  mode: Mode,
+  title: string | null = null,
+): Conversation {
+  const info = db
+    .prepare("INSERT INTO conversations (title, mode) VALUES (?, ?)")
+    .run(title, mode);
 
-  const row = db.prepare(
-    "SELECT * FROM conversations WHERE id = ?"
-  ).get(info.lastInsertRowid) as Row;
+  const row = db
+    .prepare("SELECT * FROM conversations WHERE id = ?")
+    .get(info.lastInsertRowid) as Row;
 
   return toConversation(row);
 }
 
 export function findLatestActiveByMode(mode: Mode): Conversation | null {
-  const row = db.prepare(
-    `SELECT * FROM conversations
+  const row = db
+    .prepare(
+      `SELECT * FROM conversations
      WHERE mode = ? AND archived = 0
      ORDER BY updated_at DESC
-     LIMIT 1`
-  ).get(mode) as Row | undefined;
+     LIMIT 1`,
+    )
+    .get(mode) as Row | undefined;
 
   return row ? toConversation(row) : null;
 }
 
 export function touchConversation(id: number): void {
   db.prepare(
-    "UPDATE conversations SET updated_at = datetime('now') WHERE id = ?"
+    "UPDATE conversations SET updated_at = datetime('now') WHERE id = ?",
   ).run(id);
 }
 
 export function updateConversationTitle(id: number, title: string): void {
-  db.prepare(
-    "UPDATE conversations SET title = ? WHERE id = ?"
-  ).run(title, id);
+  db.prepare("UPDATE conversations SET title = ? WHERE id = ?").run(title, id);
 }

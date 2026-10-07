@@ -14,6 +14,10 @@ export class ModelTimeoutError extends AppError {
 
 export class ModelResponseError extends AppError {
   constructor(alias: string, message: string) {
-    super(`Model ${alias} returned invalid response: ${message}`, 502, "MODEL_RESPONSE_INVALID");
+    super(
+      `Model ${alias} returned invalid response: ${message}`,
+      502,
+      "MODEL_RESPONSE_INVALID",
+    );
   }
 }

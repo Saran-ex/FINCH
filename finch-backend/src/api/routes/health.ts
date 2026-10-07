@@ -9,7 +9,7 @@ router.get("/", (_req: Request, res: Response) => {
   try {
     db.prepare("SELECT 1 AS ok").get();
     dbStatus = "connected";
-  } catch { }
+  } catch {}
   res.json({
     ok: true,
     uptime: process.uptime(),

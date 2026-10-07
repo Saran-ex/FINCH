@@ -8,7 +8,12 @@ interface FloatingInformationProps {
   onClick: () => void;
 }
 
-export function FloatingInformation({ children, className, depth, onClick }: FloatingInformationProps) {
+export function FloatingInformation({
+  children,
+  className,
+  depth,
+  onClick,
+}: FloatingInformationProps) {
   const handlePointer = (event: MouseEvent<HTMLButtonElement>) => {
     const bounds = event.currentTarget.getBoundingClientRect();
     event.currentTarget.style.setProperty("--pointer-x", `${event.clientX - bounds.left}px`);

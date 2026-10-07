@@ -2,7 +2,11 @@ import { config } from "../config/index.js";
 import { logger } from "../services/logger.js";
 import type { ModelAdapter, StreamDeltaHandler } from "./adapter.js";
 import type { GenerateOptions, GenerateResult } from "../types/model.js";
-import { ModelUnavailableError, ModelTimeoutError, ModelResponseError } from "./errors.js";
+import {
+  ModelUnavailableError,
+  ModelTimeoutError,
+  ModelResponseError,
+} from "./errors.js";
 import { getModeConfig } from "../config/modeConfig.js";
 import type { Mode } from "../config/constants.js";
 
@@ -32,7 +36,9 @@ type OllamaStreamChunk = {
 function parseStreamChunk(line: string): OllamaStreamChunk | null {
   try {
     const parsed = JSON.parse(line) as unknown;
-    return parsed && typeof parsed === "object" ? (parsed as OllamaStreamChunk) : null;
+    return parsed && typeof parsed === "object"
+      ? (parsed as OllamaStreamChunk)
+      : null;
   } catch {
     return null;
   }
@@ -43,11 +49,11 @@ class OllamaAdapter implements ModelAdapter {
     alias: string,
     ollamaModel: string,
     prompt: string,
-    options: OllamaGenerateOptions
+    options: OllamaGenerateOptions,
   ): Promise<GenerateResult> {
     // Use mode config if mode is provided, otherwise fall back to options
     const modeConfig = options.mode ? getModeConfig(options.mode) : null;
-    
+
     const temperature = options.temperature ?? modeConfig?.temperature ?? 0.2;
     const numPredict = options.maxTokens ?? modeConfig?.numPredict ?? 512;
     const useJson = options.format === "json";
@@ -67,7 +73,7 @@ class OllamaAdapter implements ModelAdapter {
         num_ctx: numCtx,
       },
     };
-    
+
     if (useJson) {
       body.format = "json";
     }
@@ -78,7 +84,8 @@ class OllamaAdapter implements ModelAdapter {
     logger.debug("ollama request body", { body });
 
     const controller = new AbortController();
-    const timeoutMs = options.mode === "research" ? RESEARCH_TIMEOUT_MS : TIMEOUT_MS;
+    const timeoutMs =
+      options.mode === "research" ? RESEARCH_TIMEOUT_MS : TIMEOUT_MS;
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     // Caller-supplied abort (e.g. the HTTP client disconnected): abort the
     // Ollama request too so we stop burning tokens for nobody.
@@ -86,7 +93,11 @@ class OllamaAdapter implements ModelAdapter {
     options.signal?.addEventListener("abort", onExternalAbort, { once: true });
 
     try {
-      logger.debug("ollama fetch sending", { model: ollamaModel, mode: options.mode, at: new Date().toISOString() });
+      logger.debug("ollama fetch sending", {
+        model: ollamaModel,
+        mode: options.mode,
+        at: new Date().toISOString(),
+      });
       const res = await fetch(`${config.ollamaUrl}/api/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -94,7 +105,11 @@ class OllamaAdapter implements ModelAdapter {
         signal: controller.signal,
       });
 
-      logger.debug("ollama fetch returned", { model: ollamaModel, status: res.status, at: new Date().toISOString() });
+      logger.debug("ollama fetch returned", {
+        model: ollamaModel,
+        status: res.status,
+        at: new Date().toISOString(),
+      });
 
       if (!res.ok) {
         throw new ModelUnavailableError(alias, `HTTP ${res.status}`);
@@ -111,10 +126,10 @@ class OllamaAdapter implements ModelAdapter {
 
       // Log warning if response was truncated due to length
       if (json.done_reason === "length") {
-        logger.warn("ollama response truncated", { 
-          alias, 
+        logger.warn("ollama response truncated", {
+          alias,
           model: ollamaModel,
-          tokensOut: json.eval_count 
+          tokensOut: json.eval_count,
         });
       }
 
@@ -128,7 +143,12 @@ class OllamaAdapter implements ModelAdapter {
         tokensOut: json.eval_count ?? 0,
       });
 
-      logger.debug("ollama generate complete", { model: ollamaModel, mode: options.mode, evalCount: json.eval_count, at: new Date().toISOString() });
+      logger.debug("ollama generate complete", {
+        model: ollamaModel,
+        mode: options.mode,
+        evalCount: json.eval_count,
+        at: new Date().toISOString(),
+      });
 
       return {
         text: json.response,
@@ -163,7 +183,7 @@ class OllamaAdapter implements ModelAdapter {
     ollamaModel: string,
     prompt: string,
     options: OllamaGenerateOptions,
-    onDelta: StreamDeltaHandler
+    onDelta: StreamDeltaHandler,
   ): Promise<GenerateResult> {
     const modeConfig = options.mode ? getModeConfig(options.mode) : null;
     const temperature = options.temperature ?? modeConfig?.temperature ?? 0.2;
@@ -205,13 +225,18 @@ class OllamaAdapter implements ModelAdapter {
     let totalDurationNs = 0;
 
     const handleChunk = (chunk: OllamaStreamChunk): boolean => {
-      if (typeof chunk.prompt_eval_count === "number") tokensIn = chunk.prompt_eval_count;
+      if (typeof chunk.prompt_eval_count === "number")
+        tokensIn = chunk.prompt_eval_count;
       if (typeof chunk.eval_count === "number") tokensOut = chunk.eval_count;
       if (typeof chunk.done_reason === "string") doneReason = chunk.done_reason;
-      if (typeof chunk.load_duration === "number") loadDurationNs = chunk.load_duration;
-      if (typeof chunk.prompt_eval_duration === "number") promptEvalDurationNs = chunk.prompt_eval_duration;
-      if (typeof chunk.eval_duration === "number") evalDurationNs = chunk.eval_duration;
-      if (typeof chunk.total_duration === "number") totalDurationNs = chunk.total_duration;
+      if (typeof chunk.load_duration === "number")
+        loadDurationNs = chunk.load_duration;
+      if (typeof chunk.prompt_eval_duration === "number")
+        promptEvalDurationNs = chunk.prompt_eval_duration;
+      if (typeof chunk.eval_duration === "number")
+        evalDurationNs = chunk.eval_duration;
+      if (typeof chunk.total_duration === "number")
+        totalDurationNs = chunk.total_duration;
       if (typeof chunk.response === "string" && chunk.response.length > 0) {
         text += chunk.response;
         if (onDelta(chunk.response, text) === false) return false;
@@ -227,7 +252,8 @@ class OllamaAdapter implements ModelAdapter {
         signal: controller.signal,
       });
       if (!res.ok) throw new ModelUnavailableError(alias, `HTTP ${res.status}`);
-      if (!res.body) throw new ModelResponseError(alias, "missing response body");
+      if (!res.body)
+        throw new ModelResponseError(alias, "missing response body");
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -237,7 +263,11 @@ class OllamaAdapter implements ModelAdapter {
         const { done, value } = await reader.read();
         if (done) break;
         buffered += decoder.decode(value, { stream: true });
-        for (let idx = buffered.indexOf("\n"); idx !== -1; idx = buffered.indexOf("\n")) {
+        for (
+          let idx = buffered.indexOf("\n");
+          idx !== -1;
+          idx = buffered.indexOf("\n")
+        ) {
           const line = buffered.slice(0, idx).trim();
           buffered = buffered.slice(idx + 1);
           if (line.length === 0) continue;
@@ -263,7 +293,11 @@ class OllamaAdapter implements ModelAdapter {
       }
 
       if (doneReason === "length") {
-        logger.warn("ollama stream truncated", { alias, model: ollamaModel, tokensOut });
+        logger.warn("ollama stream truncated", {
+          alias,
+          model: ollamaModel,
+          tokensOut,
+        });
       }
       logger.debug("ollama stream complete", {
         alias,

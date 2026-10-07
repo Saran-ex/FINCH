@@ -48,7 +48,10 @@ interface RunProcessOptions {
   timeoutMs: number;
 }
 
-function runProcess(exe: string, options: RunProcessOptions): Promise<{ stdout: Buffer; stderr: string }> {
+function runProcess(
+  exe: string,
+  options: RunProcessOptions,
+): Promise<{ stdout: Buffer; stderr: string }> {
   return new Promise((resolve, reject) => {
     // Arguments are always passed as an array — never a shell string.
     const child = spawn(exe, options.args, {
@@ -71,21 +74,27 @@ function runProcess(exe: string, options: RunProcessOptions): Promise<{ stdout: 
 
     child.on("error", (err) => {
       clearTimeout(timer);
-      reject(new ModelError(`Failed to start ${path.basename(exe)}: ${err.message}`));
+      reject(
+        new ModelError(`Failed to start ${path.basename(exe)}: ${err.message}`),
+      );
     });
 
     child.on("close", (code) => {
       clearTimeout(timer);
       const stderr = Buffer.concat(stderrChunks).toString("utf8");
       if (timedOut) {
-        reject(new ModelError(`${path.basename(exe)} timed out after ${options.timeoutMs}ms`));
+        reject(
+          new ModelError(
+            `${path.basename(exe)} timed out after ${options.timeoutMs}ms`,
+          ),
+        );
         return;
       }
       if (code !== 0) {
         reject(
           new ModelError(
-            `${path.basename(exe)} exited with code ${code}: ${stderr.slice(-500).trim()}`
-          )
+            `${path.basename(exe)} exited with code ${code}: ${stderr.slice(-500).trim()}`,
+          ),
         );
         return;
       }
@@ -112,13 +121,19 @@ async function fileExists(filePath: string): Promise<boolean> {
   }
 }
 
-async function assertFileExists(filePath: string, label: string): Promise<void> {
+async function assertFileExists(
+  filePath: string,
+  label: string,
+): Promise<void> {
   if (!(await fileExists(filePath))) {
     throw new ModelError(`${label} not found at: ${filePath}`);
   }
 }
 
-async function withTempDir<T>(prefix: string, job: (dir: string) => Promise<T>): Promise<T> {
+async function withTempDir<T>(
+  prefix: string,
+  job: (dir: string) => Promise<T>,
+): Promise<T> {
   const dir = await mkdtemp(path.join(tmpdir(), prefix));
   try {
     return await job(dir);
@@ -131,7 +146,9 @@ async function withTempDir<T>(prefix: string, job: (dir: string) => Promise<T>):
 // Strip noise markers whisper emits (e.g. "[BLANK_AUDIO]" for silence) and
 // collapse the result to a single line. Returns "" when nothing was said.
 function cleanTranscript(raw: string): string {
-  const withoutMarkers = raw.replace(/\[BLANK_AUDIO\]/gi, " ").replace(/\r/g, "");
+  const withoutMarkers = raw
+    .replace(/\[BLANK_AUDIO\]/gi, " ")
+    .replace(/\r/g, "");
   const cleaned = withoutMarkers
     .split("\n")
     .map((line) => line.trim())
@@ -166,7 +183,10 @@ function isSilentPcm(wav: Buffer): boolean {
 // speed). Selection comes from config, never hardcoded here.
 export type TranscribeKind = "real" | "wake";
 
-async function transcribeWavJob(wav: Buffer, kind: TranscribeKind): Promise<string> {
+async function transcribeWavJob(
+  wav: Buffer,
+  kind: TranscribeKind,
+): Promise<string> {
   // TTS started while this wake check was waiting in the transcribe queue:
   // skip it instead of spawning whisper into the synthesis window.
   if (kind === "wake" && ttsIsActive()) {
@@ -177,14 +197,26 @@ async function transcribeWavJob(wav: Buffer, kind: TranscribeKind): Promise<stri
   }
 
   const exe = config.voice.whisperExe;
-  const model = kind === "wake" ? config.voice.whisperWakeModel : config.voice.whisperModel;
+  const model =
+    kind === "wake" ? config.voice.whisperWakeModel : config.voice.whisperModel;
   await assertFileExists(exe, "Whisper executable");
   await assertFileExists(model, "Whisper model");
 
   return withTempDir("finch-whisper-", async (dir) => {
     const wavPath = path.join(dir, "audio.wav");
     await writeFile(wavPath, wav);
-    const args = ["-m", model, "-l", "en", "-t", "8", "-nt", "-np", "-f", wavPath];
+    const args = [
+      "-m",
+      model,
+      "-l",
+      "en",
+      "-t",
+      "8",
+      "-nt",
+      "-np",
+      "-f",
+      wavPath,
+    ];
     if (kind === "wake") {
       // Bias decoding toward the wake phrase so "Finch" is spelled correctly.
       args.push("--prompt", "Hey Finch.");
@@ -198,11 +230,18 @@ async function transcribeWavJob(wav: Buffer, kind: TranscribeKind): Promise<stri
   });
 }
 
-export function transcribeWav(wav: Buffer, kind: TranscribeKind = "real"): Promise<string> {
+export function transcribeWav(
+  wav: Buffer,
+  kind: TranscribeKind = "real",
+): Promise<string> {
   if (wav.length === 0) {
     throw new ValidationError("Missing WAV audio body (send audio/wav bytes)");
   }
-  if (wav.length < 44 || wav.toString("ascii", 0, 4) !== "RIFF" || wav.toString("ascii", 8, 12) !== "WAVE") {
+  if (
+    wav.length < 44 ||
+    wav.toString("ascii", 0, 4) !== "RIFF" ||
+    wav.toString("ascii", 8, 12) !== "WAVE"
+  ) {
     throw new ValidationError("Request body is not a WAV file");
   }
   // Background wake checks pause during active TTS (returns "" like silence;
@@ -259,7 +298,10 @@ export type TtsResult = {
 // `engine` overrides the global default per request (the conversation's voice
 // engine picker); when a model engine is chosen the Piper fallback applies
 // exactly as before, and an explicit Piper choice never loads a model engine.
-async function synthesizeJob(text: string, engine?: TtsEngine): Promise<TtsResult> {
+async function synthesizeJob(
+  text: string,
+  engine?: TtsEngine,
+): Promise<TtsResult> {
   const chosen: TtsEngine = engine ?? config.voice.ttsEngine;
   if (chosen === "kokoro") {
     try {
@@ -285,13 +327,19 @@ async function synthesizeJob(text: string, engine?: TtsEngine): Promise<TtsResul
   return { wav, engine: "piper" };
 }
 
-export function synthesizeSpeech(text: string, engine?: TtsEngine): Promise<TtsResult> {
+export function synthesizeSpeech(
+  text: string,
+  engine?: TtsEngine,
+): Promise<TtsResult> {
   const trimmed = text.trim();
   if (trimmed.length === 0) {
     throw new ValidationError("'text' must be a non-empty string");
   }
   // Cap the input so one reply can never trigger a very long speech job.
-  const capped = trimmed.length > PIPER_MAX_TEXT_CHARS ? trimmed.slice(0, PIPER_MAX_TEXT_CHARS) : trimmed;
+  const capped =
+    trimmed.length > PIPER_MAX_TEXT_CHARS
+      ? trimmed.slice(0, PIPER_MAX_TEXT_CHARS)
+      : trimmed;
   ttsActiveJobs++;
   return enqueueTts(() => synthesizeJob(capped, engine)).finally(() => {
     ttsActiveJobs--;
@@ -301,7 +349,14 @@ export function synthesizeSpeech(text: string, engine?: TtsEngine): Promise<TtsR
 export type VoiceHealth = {
   ok: boolean;
   whisper: { exe: string; model: string; exeOk: boolean; modelOk: boolean };
-  piper: { exe: string; voice: string; voiceConfig: string; exeOk: boolean; voiceOk: boolean; voiceConfigOk: boolean };
+  piper: {
+    exe: string;
+    voice: string;
+    voiceConfig: string;
+    exeOk: boolean;
+    voiceOk: boolean;
+    voiceConfigOk: boolean;
+  };
   ttsEngine: TtsEngine;
   kokoro: {
     voice: string;
@@ -345,24 +400,39 @@ export async function getVoiceHealth(): Promise<VoiceHealth> {
     kittenTokens,
     kittenVoice,
   } = config.voice;
-  const [whisperExeOk, whisperModelOk, piperExeOk, piperVoiceOk, piperConfigOk, kokoroModelOk, kokoroVoicesOk, kokoroTokensOk, kokoroEspeakOk, kittenModelOk, kittenVoicesOk, kittenTokensOk, kittenEspeakOk] =
-    await Promise.all([
-      fileExists(whisperExe),
-      fileExists(whisperModel),
-      fileExists(piperExe),
-      fileExists(piperVoice),
-      fileExists(piperVoiceConfig),
-      fileExists(kokoroModel),
-      fileExists(kokoroVoices),
-      fileExists(kokoroTokens),
-      fileExists(kokoroEspeakData),
-      fileExists(kittenModel),
-      fileExists(kittenVoices),
-      fileExists(kittenTokens),
-      fileExists(kokoroEspeakData),
-    ]);
-  const kokoroReady = kokoroModelOk && kokoroVoicesOk && kokoroTokensOk && kokoroEspeakOk;
-  const kittenReady = kittenModelOk && kittenVoicesOk && kittenTokensOk && kittenEspeakOk;
+  const [
+    whisperExeOk,
+    whisperModelOk,
+    piperExeOk,
+    piperVoiceOk,
+    piperConfigOk,
+    kokoroModelOk,
+    kokoroVoicesOk,
+    kokoroTokensOk,
+    kokoroEspeakOk,
+    kittenModelOk,
+    kittenVoicesOk,
+    kittenTokensOk,
+    kittenEspeakOk,
+  ] = await Promise.all([
+    fileExists(whisperExe),
+    fileExists(whisperModel),
+    fileExists(piperExe),
+    fileExists(piperVoice),
+    fileExists(piperVoiceConfig),
+    fileExists(kokoroModel),
+    fileExists(kokoroVoices),
+    fileExists(kokoroTokens),
+    fileExists(kokoroEspeakData),
+    fileExists(kittenModel),
+    fileExists(kittenVoices),
+    fileExists(kittenTokens),
+    fileExists(kokoroEspeakData),
+  ]);
+  const kokoroReady =
+    kokoroModelOk && kokoroVoicesOk && kokoroTokensOk && kokoroEspeakOk;
+  const kittenReady =
+    kittenModelOk && kittenVoicesOk && kittenTokensOk && kittenEspeakOk;
 
   return {
     // Model-engine files only gate health when that engine is active; Piper
@@ -373,8 +443,15 @@ export async function getVoiceHealth(): Promise<VoiceHealth> {
       piperExeOk &&
       piperVoiceOk &&
       piperConfigOk &&
-      (ttsEngine === "piper" || (ttsEngine === "kokoro" && kokoroReady) || (ttsEngine === "kitten" && kittenReady)),
-    whisper: { exe: whisperExe, model: whisperModel, exeOk: whisperExeOk, modelOk: whisperModelOk },
+      (ttsEngine === "piper" ||
+        (ttsEngine === "kokoro" && kokoroReady) ||
+        (ttsEngine === "kitten" && kittenReady)),
+    whisper: {
+      exe: whisperExe,
+      model: whisperModel,
+      exeOk: whisperExeOk,
+      modelOk: whisperModelOk,
+    },
     piper: {
       exe: piperExe,
       voice: piperVoice,

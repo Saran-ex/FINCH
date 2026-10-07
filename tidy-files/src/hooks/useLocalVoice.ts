@@ -1,13 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { postVoiceTranscribe } from '@/lib/api';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { postVoiceTranscribe } from "@/lib/api";
 
 export type VoiceRecognitionState =
-  | 'idle'
-  | 'waiting'
-  | 'listening'
-  | 'processing'
-  | 'error'
-  | 'unsupported';
+  "idle" | "waiting" | "listening" | "processing" | "error" | "unsupported";
 
 export interface UseLocalVoiceReturn {
   state: VoiceRecognitionState;
@@ -53,9 +48,20 @@ const CAPTURE_SILENCE_MS = 1500;
 const CAPTURE_NO_SPEECH_MS = 4000;
 
 // Greetings allowed right before a near-"finch" word in a wake match.
-const WAKE_GREETINGS = new Set(['hey', 'hi', 'hay', 'hello']);
+const WAKE_GREETINGS = new Set(["hey", "hi", "hay", "hello"]);
 // Fillers ignored ahead of the wake phrase when stripping it from a transcript.
-const WAKE_FILLERS = new Set(['um', 'uh', 'ok', 'okay', 'hey', 'hi', 'hay', 'hello', 'excuse', 'me']);
+const WAKE_FILLERS = new Set([
+  "um",
+  "uh",
+  "ok",
+  "okay",
+  "hey",
+  "hi",
+  "hay",
+  "hello",
+  "excuse",
+  "me",
+]);
 
 function computeRms(samples: Float32Array): number {
   let sum = 0;
@@ -84,7 +90,7 @@ function tokenizeWords(text: string): { word: string; end: number }[] {
 }
 
 function normalizeWord(word: string): string {
-  return word.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return word.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
 // True once the Levenshtein distance is <= max (row-min early stop).
@@ -110,9 +116,9 @@ function withinEditDistance(a: string, b: string, max: number): boolean {
 // "finch" plus common mishearings (finish, fench, pinch, vinch, french, ...).
 function isFinchLike(word: string): boolean {
   const w = normalizeWord(word);
-  if (w === 'finch') return true;
+  if (w === "finch") return true;
   if (w.length < 4 || w.length > 7) return false;
-  return withinEditDistance(w, 'finch', 2);
+  return withinEditDistance(w, "finch", 2);
 }
 
 // Char index just after the wake phrase, or -1 when the transcript has none.
@@ -131,7 +137,7 @@ function wakePhraseEnd(text: string): number {
   for (const { word, end } of words) {
     const w = normalizeWord(word);
     if (WAKE_FILLERS.has(w)) continue;
-    return w === 'finch' ? end : -1;
+    return w === "finch" ? end : -1;
   }
   return -1;
 }
@@ -142,20 +148,23 @@ function wakePhraseEnd(text: string): number {
 function stripWakePhrase(text: string): string {
   const words = tokenizeWords(text);
   let i = 0;
-  while (i < words.length && WAKE_FILLERS.has(normalizeWord(words[i]?.word ?? ''))) i++;
+  while (i < words.length && WAKE_FILLERS.has(normalizeWord(words[i]?.word ?? ""))) i++;
   if (i >= words.length) return text;
   const target = words[i];
   if (!target) return text;
   const targetWord = normalizeWord(target.word);
   const prev = i > 0 ? words[i - 1] : undefined;
   const leadingWake =
-    targetWord === 'finch' ||
+    targetWord === "finch" ||
     (isFinchLike(target.word) && !!prev && WAKE_GREETINGS.has(normalizeWord(prev.word)));
   if (!leadingWake) return text;
-  return text.slice(target.end).replace(/^[\s,.:;!?-]+/, '').trim();
+  return text
+    .slice(target.end)
+    .replace(/^[\s,.:;!?-]+/, "")
+    .trim();
 }
 
-function newTurnId(prefix: 'vt' | 'wk'): string {
+function newTurnId(prefix: "vt" | "wk"): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
@@ -165,9 +174,9 @@ function newTurnId(prefix: 'vt' | 'wk'): string {
 async function queryMicGranted(): Promise<boolean> {
   try {
     const permissions = navigator.permissions;
-    if (!permissions || typeof permissions.query !== 'function') return false;
-    const status = await permissions.query({ name: 'microphone' as PermissionName });
-    return status.state === 'granted';
+    if (!permissions || typeof permissions.query !== "function") return false;
+    const status = await permissions.query({ name: "microphone" as PermissionName });
+    return status.state === "granted";
   } catch {
     return false;
   }
@@ -199,10 +208,10 @@ function encodeWav(samples: Float32Array, sampleRate: number): Blob {
     for (let i = 0; i < text.length; i++) view.setUint8(offset + i, text.charCodeAt(i));
   };
 
-  writeAscii(0, 'RIFF');
+  writeAscii(0, "RIFF");
   view.setUint32(4, 36 + dataSize, true);
-  writeAscii(8, 'WAVE');
-  writeAscii(12, 'fmt ');
+  writeAscii(8, "WAVE");
+  writeAscii(12, "fmt ");
   view.setUint32(16, 16, true);
   view.setUint16(20, 1, true); // PCM
   view.setUint16(22, 1, true); // mono
@@ -210,7 +219,7 @@ function encodeWav(samples: Float32Array, sampleRate: number): Blob {
   view.setUint32(28, sampleRate * bytesPerSample, true);
   view.setUint16(32, bytesPerSample, true);
   view.setUint16(34, 16, true);
-  writeAscii(36, 'data');
+  writeAscii(36, "data");
   view.setUint32(40, dataSize, true);
 
   let offset = 44;
@@ -219,23 +228,23 @@ function encodeWav(samples: Float32Array, sampleRate: number): Blob {
     view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
     offset += 2;
   }
-  return new Blob([buffer], { type: 'audio/wav' });
+  return new Blob([buffer], { type: "audio/wav" });
 }
 
-type CaptureMode = 'manual' | 'wake' | null;
-type WakeSessionState = 'off' | 'starting' | 'on';
-type CaptureStopReason = 'manual' | 'silence-timeout' | 'no-speech' | 'max-duration';
+type CaptureMode = "manual" | "wake" | null;
+type WakeSessionState = "off" | "starting" | "on";
+type CaptureStopReason = "manual" | "silence-timeout" | "no-speech" | "max-duration";
 
 export function useLocalVoice(): UseLocalVoiceReturn {
-  const [state, setState] = useState<VoiceRecognitionState>('idle');
-  const [transcript, setTranscript] = useState('');
+  const [state, setState] = useState<VoiceRecognitionState>("idle");
+  const [transcript, setTranscript] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [turnId, setTurnId] = useState('');
+  const [turnId, setTurnId] = useState("");
   const [isSupported, setIsSupported] = useState(false);
   const [isSecureContext, setIsSecureContext] = useState(true);
 
   // Synchronous mirror of `state` so audio callbacks never read a stale value.
-  const stateRef = useRef<VoiceRecognitionState>('idle');
+  const stateRef = useRef<VoiceRecognitionState>("idle");
   const streamRef = useRef<MediaStream | null>(null);
   const contextRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
@@ -249,10 +258,10 @@ export function useLocalVoice(): UseLocalVoiceReturn {
   // Lets the 30s cap timer (created inside startListening) reach stopListening.
   const stopListeningRef = useRef<() => void>(() => {});
   // Shared id for the current voice turn (frontend logs + x-voice-turn-id header).
-  const turnIdRef = useRef('');
+  const turnIdRef = useRef("");
 
   // Always-on wake session state.
-  const sessionRef = useRef<WakeSessionState>('off');
+  const sessionRef = useRef<WakeSessionState>("off");
   const captureModeRef = useRef<CaptureMode>(null);
   const micGrantedRef = useRef(false);
   const captureStartedAtRef = useRef(0);
@@ -273,7 +282,7 @@ export function useLocalVoice(): UseLocalVoiceReturn {
   // Global sample index where the current segment's speech began.
   const segmentStartSampleRef = useRef(0);
   const wakeCheckInFlightRef = useRef(false);
-  const wakeCheckIdRef = useRef('');
+  const wakeCheckIdRef = useRef("");
   const wakeCheckSentAtRef = useRef(0);
   // Latest segment whose check could not start yet (only the latest is kept).
   const pendingSegmentRef = useRef<{
@@ -289,12 +298,12 @@ export function useLocalVoice(): UseLocalVoiceReturn {
   }, []);
 
   const applyMicError = useCallback((err: unknown) => {
-    if (err instanceof DOMException && err.name === 'NotAllowedError') {
-      setError('Microphone access denied. Please allow microphone access in browser settings.');
-    } else if (err instanceof DOMException && err.name === 'NotFoundError') {
-      setError('Microphone not found. Please check your microphone.');
+    if (err instanceof DOMException && err.name === "NotAllowedError") {
+      setError("Microphone access denied. Please allow microphone access in browser settings.");
+    } else if (err instanceof DOMException && err.name === "NotFoundError") {
+      setError("Microphone not found. Please check your microphone.");
     } else {
-      setError(err instanceof Error ? err.message : 'Failed to start microphone.');
+      setError(err instanceof Error ? err.message : "Failed to start microphone.");
     }
   }, []);
 
@@ -328,7 +337,7 @@ export function useLocalVoice(): UseLocalVoiceReturn {
     }
     const context = contextRef.current;
     contextRef.current = null;
-    if (context && context.state !== 'closed') {
+    if (context && context.state !== "closed") {
       void context.close().catch(() => undefined);
     }
     const stream = streamRef.current;
@@ -380,12 +389,17 @@ export function useLocalVoice(): UseLocalVoiceReturn {
   }, []);
 
   const transcribe = useCallback(
-    async (voiceTurn: string, sampleRate: number, chunks: Float32Array[], wakeInitiated = false) => {
+    async (
+      voiceTurn: string,
+      sampleRate: number,
+      chunks: Float32Array[],
+      wakeInitiated = false,
+    ) => {
       const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
       if (totalLength === 0) {
         // Nothing captured — go back to idle without sending anything.
-        setTranscript('');
-        applyState('idle');
+        setTranscript("");
+        applyState("idle");
         return;
       }
 
@@ -417,21 +431,21 @@ export function useLocalVoice(): UseLocalVoiceReturn {
             console.log(
               `[voice-timing] turn=${voiceTurn} stage=turn-discarded at=${new Date().toISOString()} reason=wake-only`,
             );
-            setTranscript('');
-            applyState('idle');
+            setTranscript("");
+            applyState("idle");
             return;
           }
         }
         setTranscript(finalText);
         // Empty transcript returns to idle so the caller never sends an empty turn.
-        applyState(finalText.length > 0 ? 'processing' : 'idle');
+        applyState(finalText.length > 0 ? "processing" : "idle");
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Voice transcription failed';
+        const message = err instanceof Error ? err.message : "Voice transcription failed";
         console.log(
           `[voice-timing] turn=${voiceTurn} stage=transcript-error at=${new Date().toISOString()} ms=${Date.now() - uploadStart} error="${message}"`,
         );
         setError(message);
-        applyState('error');
+        applyState("error");
       }
     },
     [applyState],
@@ -440,11 +454,11 @@ export function useLocalVoice(): UseLocalVoiceReturn {
   // Short two-tone chime: the audible cue that the wake word was caught.
   const playWakeChime = useCallback(() => {
     const context = contextRef.current;
-    if (!context || context.state === 'closed') return;
+    if (!context || context.state === "closed") return;
     try {
       const oscillator = context.createOscillator();
       const gain = context.createGain();
-      oscillator.type = 'sine';
+      oscillator.type = "sine";
       const start = context.currentTime;
       oscillator.frequency.setValueAtTime(784, start);
       oscillator.frequency.setValueAtTime(1175, start + 0.1);
@@ -471,7 +485,7 @@ export function useLocalVoice(): UseLocalVoiceReturn {
   const finishCapture = useCallback(
     (reason: CaptureStopReason) => {
       if (captureModeRef.current === null) return;
-      const wasWake = captureModeRef.current === 'wake';
+      const wasWake = captureModeRef.current === "wake";
       const sampleRate = contextRef.current?.sampleRate ?? TARGET_SAMPLE_RATE;
       const chunks = chunksRef.current;
       chunksRef.current = [];
@@ -488,13 +502,13 @@ export function useLocalVoice(): UseLocalVoiceReturn {
       console.log(
         `[voice-timing] turn=${id} stage=capture-stop at=${new Date().toISOString()} reason=${reason} ms=${Date.now() - captureStartedAtRef.current} chunks=${chunks.length}`,
       );
-      if (sessionRef.current !== 'on') teardownRecording();
-      if (reason === 'no-speech') {
+      if (sessionRef.current !== "on") teardownRecording();
+      if (reason === "no-speech") {
         // Wake word heard but nothing followed it: back to background quietly.
-        applyState('idle');
+        applyState("idle");
         return;
       }
-      applyState('processing');
+      applyState("processing");
       void transcribe(id, sampleRate, chunks, wasWake);
     },
     [teardownRecording, transcribe, applyState],
@@ -507,13 +521,13 @@ export function useLocalVoice(): UseLocalVoiceReturn {
     (checkTurn: string, text: string, segmentStartSample: number, rate: number) => {
       const now = Date.now();
 
-      const captureTurn = newTurnId('vt');
+      const captureTurn = newTurnId("vt");
       turnIdRef.current = captureTurn;
       setTurnId(captureTurn);
 
       const preRoll = sliceRolling(segmentStartSample, totalSamplesRef.current);
       chunksRef.current = preRoll.length > 0 ? [preRoll] : [];
-      captureModeRef.current = 'wake';
+      captureModeRef.current = "wake";
       captureStartedAtRef.current = now;
       captureLastSpeechAtRef.current = now;
       captureHeardSpeechRef.current =
@@ -527,8 +541,8 @@ export function useLocalVoice(): UseLocalVoiceReturn {
       );
 
       playWakeChime();
-      wakeWatchdogRef.current = setTimeout(() => finishCapture('max-duration'), MAX_RECORDING_MS);
-      applyState('listening');
+      wakeWatchdogRef.current = setTimeout(() => finishCapture("max-duration"), MAX_RECORDING_MS);
+      applyState("listening");
     },
     [sliceRolling, playWakeChime, finishCapture, applyState],
   );
@@ -543,7 +557,7 @@ export function useLocalVoice(): UseLocalVoiceReturn {
 
       const samples = sliceRolling(startSample, endSample);
       const wav = encodeWav(downsampleTo16k(samples, rate), TARGET_SAMPLE_RATE);
-      const checkTurn = newTurnId('wk');
+      const checkTurn = newTurnId("wk");
       const sentEpoch = epochRef.current;
 
       wakeCheckInFlightRef.current = true;
@@ -562,7 +576,7 @@ export function useLocalVoice(): UseLocalVoiceReturn {
             `[voice-timing] turn=${checkTurn} stage=wake-check-back at=${new Date().toISOString()} ms=${Date.now() - now} segmentMs=${segmentMs} match=${matchEnd >= 0} text="${trimmed}"`,
           );
           if (wakeCheckIdRef.current === checkTurn) wakeCheckInFlightRef.current = false;
-          if (sessionRef.current !== 'on' || stateRef.current !== 'waiting') {
+          if (sessionRef.current !== "on" || stateRef.current !== "waiting") {
             pendingSegmentRef.current = null;
             return;
           }
@@ -575,7 +589,7 @@ export function useLocalVoice(): UseLocalVoiceReturn {
           handleWakeDetected(checkTurn, trimmed, startSample, rate);
         })
         .catch((err) => {
-          const message = err instanceof Error ? err.message : 'wake check failed';
+          const message = err instanceof Error ? err.message : "wake check failed";
           console.log(
             `[voice-timing] turn=${checkTurn} stage=wake-check-error at=${new Date().toISOString()} ms=${Date.now() - now} error="${message}"`,
           );
@@ -603,12 +617,15 @@ export function useLocalVoice(): UseLocalVoiceReturn {
       }
 
       // Abandon a check that never came back so the pipeline cannot wedge.
-      if (wakeCheckInFlightRef.current && now - wakeCheckSentAtRef.current > WAKE_CHECK_TIMEOUT_MS) {
+      if (
+        wakeCheckInFlightRef.current &&
+        now - wakeCheckSentAtRef.current > WAKE_CHECK_TIMEOUT_MS
+      ) {
         console.log(
           `[voice-timing] turn=${wakeCheckIdRef.current} stage=wake-check-timeout at=${new Date().toISOString()}`,
         );
         wakeCheckInFlightRef.current = false;
-        wakeCheckIdRef.current = '';
+        wakeCheckIdRef.current = "";
       }
 
       const rate = sampleRateRef.current || TARGET_SAMPLE_RATE;
@@ -656,10 +673,16 @@ export function useLocalVoice(): UseLocalVoiceReturn {
         captureHeardSpeechRef.current = true;
         captureLastSpeechAtRef.current = now;
       }
-      if (captureHeardSpeechRef.current && now - captureLastSpeechAtRef.current >= CAPTURE_SILENCE_MS) {
-        finishCapture('silence-timeout');
-      } else if (!captureHeardSpeechRef.current && now - captureStartedAtRef.current >= CAPTURE_NO_SPEECH_MS) {
-        finishCapture('no-speech');
+      if (
+        captureHeardSpeechRef.current &&
+        now - captureLastSpeechAtRef.current >= CAPTURE_SILENCE_MS
+      ) {
+        finishCapture("silence-timeout");
+      } else if (
+        !captureHeardSpeechRef.current &&
+        now - captureStartedAtRef.current >= CAPTURE_NO_SPEECH_MS
+      ) {
+        finishCapture("no-speech");
       }
     },
     [finishCapture],
@@ -675,14 +698,14 @@ export function useLocalVoice(): UseLocalVoiceReturn {
       const rms = computeRms(block);
 
       if (captureModeRef.current !== null) chunksRef.current.push(block);
-      if (sessionRef.current === 'on') pushRolling(block);
+      if (sessionRef.current === "on") pushRolling(block);
 
-      if (captureModeRef.current === 'wake') {
+      if (captureModeRef.current === "wake") {
         evaluateWakeCapture(rms, now);
       } else if (
         captureModeRef.current === null &&
-        sessionRef.current === 'on' &&
-        stateRef.current === 'waiting'
+        sessionRef.current === "on" &&
+        stateRef.current === "waiting"
       ) {
         evaluateBackground(rms, now);
       }
@@ -703,12 +726,12 @@ export function useLocalVoice(): UseLocalVoiceReturn {
       window.AudioContext ??
       (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextCtor) {
-      throw new Error('Audio recording is not supported in this browser.');
+      throw new Error("Audio recording is not supported in this browser.");
     }
 
     const context = new AudioContextCtor();
     contextRef.current = context;
-    if (context.state === 'suspended') await context.resume();
+    if (context.state === "suspended") await context.resume();
     sampleRateRef.current = context.sampleRate;
 
     const source = context.createMediaStreamSource(stream);
@@ -735,21 +758,21 @@ export function useLocalVoice(): UseLocalVoiceReturn {
     segmentStartSampleRef.current = 0;
     pendingSegmentRef.current = null;
     wakeCheckInFlightRef.current = false;
-    wakeCheckIdRef.current = '';
-    applyState('waiting');
+    wakeCheckIdRef.current = "";
+    applyState("waiting");
     console.log(`[voice-timing] turn=- stage=wake-listening at=${new Date().toISOString()}`);
   }, [applyState]);
 
   const beginManualCapture = useCallback(() => {
-    setTranscript('');
+    setTranscript("");
     setError(null);
-    const id = newTurnId('vt');
+    const id = newTurnId("vt");
     turnIdRef.current = id;
     setTurnId(id);
-    captureModeRef.current = 'manual';
+    captureModeRef.current = "manual";
     captureStartedAtRef.current = Date.now();
     chunksRef.current = [];
-    applyState('listening');
+    applyState("listening");
     // Push-to-talk safety net: never record longer than 30s.
     capTimerRef.current = setTimeout(() => stopListeningRef.current(), MAX_RECORDING_MS);
   }, [applyState]);
@@ -759,29 +782,29 @@ export function useLocalVoice(): UseLocalVoiceReturn {
     if (recordingRef.current) {
       // The always-on session already owns the mic: capture on the open stream.
       if (
-        sessionRef.current === 'on' &&
+        sessionRef.current === "on" &&
         captureModeRef.current === null &&
-        (stateRef.current === 'waiting' || stateRef.current === 'idle')
+        (stateRef.current === "waiting" || stateRef.current === "idle")
       ) {
         beginManualCapture();
       }
       return;
     }
 
-    setTranscript('');
+    setTranscript("");
     setError(null);
-    applyState('idle');
+    applyState("idle");
     cancelStartRef.current = false;
-    const id = newTurnId('vt');
+    const id = newTurnId("vt");
     turnIdRef.current = id;
     setTurnId(id);
 
     if (!isSupported) {
-      applyState('unsupported');
+      applyState("unsupported");
       return;
     }
 
-    captureModeRef.current = 'manual';
+    captureModeRef.current = "manual";
     captureStartedAtRef.current = Date.now();
     chunksRef.current = [];
     busyRef.current = true;
@@ -793,13 +816,13 @@ export function useLocalVoice(): UseLocalVoiceReturn {
           return;
         }
         micGrantedRef.current = true;
-        applyState('listening');
+        applyState("listening");
         capTimerRef.current = setTimeout(() => stopListeningRef.current(), MAX_RECORDING_MS);
       } catch (err) {
         captureModeRef.current = null;
         applyMicError(err);
         teardownRecording();
-        applyState('error');
+        applyState("error");
       } finally {
         busyRef.current = false;
       }
@@ -813,7 +836,7 @@ export function useLocalVoice(): UseLocalVoiceReturn {
       return;
     }
     if (captureModeRef.current === null) return;
-    finishCapture('manual');
+    finishCapture("manual");
   }, [finishCapture]);
 
   useEffect(() => {
@@ -823,18 +846,18 @@ export function useLocalVoice(): UseLocalVoiceReturn {
   // Starts (or resumes) always-on background listening for the wake word.
   const startWakeSession = useCallback(() => {
     if (!isSupported) {
-      applyState('unsupported');
+      applyState("unsupported");
       return;
     }
     if (busyRef.current) return;
-    if (sessionRef.current === 'on') {
-      if (stateRef.current === 'idle') enterBackground();
+    if (sessionRef.current === "on") {
+      if (stateRef.current === "idle") enterBackground();
       return;
     }
-    if (sessionRef.current === 'starting') return;
+    if (sessionRef.current === "starting") return;
 
     cancelStartRef.current = false;
-    sessionRef.current = 'starting';
+    sessionRef.current = "starting";
     busyRef.current = true;
     (async () => {
       try {
@@ -844,28 +867,28 @@ export function useLocalVoice(): UseLocalVoiceReturn {
         if (!micGrantedRef.current) {
           // Browser restriction: the first mic use needs a click on the mic
           // button. Once granted, the session auto-starts from then on.
-          sessionRef.current = 'off';
+          sessionRef.current = "off";
           return;
         }
-        if (cancelStartRef.current || sessionRef.current !== 'starting') {
-          sessionRef.current = 'off';
+        if (cancelStartRef.current || sessionRef.current !== "starting") {
+          sessionRef.current = "off";
           return;
         }
         await ensureStream();
-        if (cancelStartRef.current || sessionRef.current !== 'starting') {
-          sessionRef.current = 'off';
+        if (cancelStartRef.current || sessionRef.current !== "starting") {
+          sessionRef.current = "off";
           if (captureModeRef.current === null) teardownRecording();
           return;
         }
         micGrantedRef.current = true;
-        sessionRef.current = 'on';
+        sessionRef.current = "on";
         enterBackground();
       } catch (err) {
-        sessionRef.current = 'off';
+        sessionRef.current = "off";
         captureModeRef.current = null;
         applyMicError(err);
         teardownRecording();
-        applyState('error');
+        applyState("error");
       } finally {
         busyRef.current = false;
       }
@@ -875,43 +898,43 @@ export function useLocalVoice(): UseLocalVoiceReturn {
   // Stops background listening and releases the mic (unless a manual capture
   // is still in progress, which finishes on its own).
   const stopWakeSession = useCallback(() => {
-    if (sessionRef.current === 'off') return;
+    if (sessionRef.current === "off") return;
     cancelStartRef.current = true;
-    sessionRef.current = 'off';
-    if (captureModeRef.current === 'manual') return;
+    sessionRef.current = "off";
+    if (captureModeRef.current === "manual") return;
     captureModeRef.current = null;
     chunksRef.current = [];
     pendingSegmentRef.current = null;
     wakeCheckInFlightRef.current = false;
-    wakeCheckIdRef.current = '';
+    wakeCheckIdRef.current = "";
     teardownRecording();
-    if (stateRef.current === 'waiting' || stateRef.current === 'listening') {
-      applyState('idle');
+    if (stateRef.current === "waiting" || stateRef.current === "listening") {
+      applyState("idle");
     }
   }, [teardownRecording, applyState]);
 
   // Pauses wake checks (e.g. while a reply is being spoken) but keeps the
   // mic stream open so listening resumes instantly.
   const pauseWakeListening = useCallback(() => {
-    if (sessionRef.current === 'on' && stateRef.current === 'waiting') {
-      applyState('idle');
+    if (sessionRef.current === "on" && stateRef.current === "waiting") {
+      applyState("idle");
     }
   }, [applyState]);
 
   const reset = useCallback(() => {
-    applyState('idle');
-    setTranscript('');
+    applyState("idle");
+    setTranscript("");
     setError(null);
   }, [applyState]);
 
   useEffect(() => {
     setIsSecureContext(window.isSecureContext === true);
-    const supported = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
+    const supported = typeof navigator !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
     setIsSupported(supported);
-    if (!supported) applyState('unsupported');
+    if (!supported) applyState("unsupported");
 
     return () => {
-      sessionRef.current = 'off';
+      sessionRef.current = "off";
       captureModeRef.current = null;
       teardownRecording();
     };

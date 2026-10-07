@@ -1,11 +1,21 @@
 @keyframes veil-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 @keyframes collapse-out {
-  from { opacity: 1; transform: scale(1); }
-  to { opacity: 0; transform: scale(0.97); }
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
 }
 
 .expanded-backdrop.expanded-closing {

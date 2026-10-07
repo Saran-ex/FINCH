@@ -5,7 +5,11 @@ import { controlRoomStore } from "@/lib/controlRoomStore";
 import type { Mode } from "@/types/mode";
 import { useControlRoom } from "@/lib/controlRoomStore";
 
-const MODES: { id: Mode; icon: React.ComponentType<{ className?: string }>; description: string }[] = [
+const MODES: {
+  id: Mode;
+  icon: React.ComponentType<{ className?: string }>;
+  description: string;
+}[] = [
   { id: "conversation", icon: MessageSquare, description: "Natural chat with Finch" },
   { id: "plan", icon: ListTodo, description: "Structured planning and next steps" },
   { id: "search", icon: Search, description: "Find information on the web" },
@@ -14,7 +18,15 @@ const MODES: { id: Mode; icon: React.ComponentType<{ className?: string }>; desc
 
 function MessageSquare({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
     </svg>
   );
@@ -22,7 +34,15 @@ function MessageSquare({ className }: { className?: string }) {
 
 function ListTodo({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M9 11l3 3L22 4" />
       <path d="M9 16H6" />
       <path d="M12 16H6" />
@@ -35,7 +55,15 @@ function ListTodo({ className }: { className?: string }) {
 
 function Search({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <circle cx="11" cy="11" r="8" />
       <path d="m21 21-4.3-4.3" />
     </svg>
@@ -44,7 +72,15 @@ function Search({ className }: { className?: string }) {
 
 function BookOpen({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
       <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
     </svg>
@@ -118,7 +154,7 @@ export function ModesPanel() {
                     htmlFor={`default-${id}`}
                     className={cn(
                       "text-xs text-zinc-500 cursor-pointer select-none transition-colors",
-                      enabled ? "hover:text-zinc-700" : "opacity-40 cursor-not-allowed"
+                      enabled ? "hover:text-zinc-700" : "opacity-40 cursor-not-allowed",
                     )}
                   >
                     Default

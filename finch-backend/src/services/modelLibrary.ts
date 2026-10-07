@@ -47,9 +47,13 @@ function mapRow(row: AliasRow): LibraryModel {
 export async function syncModelLibrary(): Promise<ModelLibrary> {
   let installed: string[];
   try {
-    installed = (await listInstalledOllamaModels({ force: true })).map((m) => m.name);
+    installed = (await listInstalledOllamaModels({ force: true })).map(
+      (m) => m.name,
+    );
   } catch (err) {
-    logger.warn("library: Ollama unreachable, returning an empty library", { err });
+    logger.warn("library: Ollama unreachable, returning an empty library", {
+      err,
+    });
     return { ollamaReachable: false, models: [] };
   }
 
@@ -82,7 +86,8 @@ export async function syncModelLibrary(): Promise<ModelLibrary> {
 
   if (pending.length > 0) {
     const register = db.transaction((rows: AliasRow[]) => {
-      for (const row of rows) insert.run(row.alias, row.display_name, row.ollama_model);
+      for (const row of rows)
+        insert.run(row.alias, row.display_name, row.ollama_model);
     });
     register(pending);
     logger.info("library: registered newly installed models", {
@@ -103,18 +108,26 @@ export async function syncModelLibrary(): Promise<ModelLibrary> {
  * alias row (and anything in history that references it) is kept, and every
  * mode that was pointing at it is moved to another enabled model.
  */
-export function setModelLibraryEnabled(alias: string, enabled: boolean): LibraryModel {
-  const row = db.prepare(`${SELECT_ALIAS} WHERE alias = ?`).get(alias) as AliasRow | undefined;
+export function setModelLibraryEnabled(
+  alias: string,
+  enabled: boolean,
+): LibraryModel {
+  const row = db.prepare(`${SELECT_ALIAS} WHERE alias = ?`).get(alias) as
+    AliasRow | undefined;
   if (!row) throw new NotFoundError(`Model '${alias}' not found`);
 
   if (enabled) {
-    db.prepare("UPDATE model_aliases SET enabled = 1 WHERE alias = ?").run(alias);
+    db.prepare("UPDATE model_aliases SET enabled = 1 WHERE alias = ?").run(
+      alias,
+    );
     logger.info("library: model enabled", { alias });
     return mapRow({ ...row, enabled: 1 });
   }
 
   const remaining = db
-    .prepare("SELECT alias FROM model_aliases WHERE enabled = 1 AND alias <> ? ORDER BY id")
+    .prepare(
+      "SELECT alias FROM model_aliases WHERE enabled = 1 AND alias <> ? ORDER BY id",
+    )
     .all(alias) as Array<{ alias: string }>;
   if (remaining.length === 0) {
     throw new ValidationError("At least one model must stay enabled.");
@@ -122,7 +135,9 @@ export function setModelLibraryEnabled(alias: string, enabled: boolean): Library
   const nextDefault = remaining[0]!.alias;
 
   const modes = db
-    .prepare("SELECT mode, primary_alias, fallback_alias, allowed_aliases FROM mode_settings")
+    .prepare(
+      "SELECT mode, primary_alias, fallback_alias, allowed_aliases FROM mode_settings",
+    )
     .all() as Array<{
     mode: string;
     primary_alias: string;
@@ -131,7 +146,9 @@ export function setModelLibraryEnabled(alias: string, enabled: boolean): Library
   }>;
 
   const apply = db.transaction(() => {
-    db.prepare("UPDATE model_aliases SET enabled = 0 WHERE alias = ?").run(alias);
+    db.prepare("UPDATE model_aliases SET enabled = 0 WHERE alias = ?").run(
+      alias,
+    );
     for (const m of modes) {
       if (m.primary_alias === alias) {
         const preferred =
@@ -163,6 +180,9 @@ export function setModelLibraryEnabled(alias: string, enabled: boolean): Library
   });
   apply();
 
-  logger.info("library: model disabled, modes re-pointed", { alias, nextDefault });
+  logger.info("library: model disabled, modes re-pointed", {
+    alias,
+    nextDefault,
+  });
   return mapRow({ ...row, enabled: 0 });
 }

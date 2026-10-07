@@ -29,11 +29,13 @@ function toSummary(r: Row): Summary {
 }
 
 export function getLatestSummaryForMode(mode: Mode): Summary | null {
-  const row = db.prepare(
-    `SELECT * FROM summaries
+  const row = db
+    .prepare(
+      `SELECT * FROM summaries
      WHERE mode = ? OR mode IS NULL
      ORDER BY created_at DESC
-     LIMIT 1`
-  ).get(mode) as Row | undefined;
+     LIMIT 1`,
+    )
+    .get(mode) as Row | undefined;
   return row ? toSummary(row) : null;
 }

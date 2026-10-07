@@ -1,9 +1,14 @@
-import { getMemoryStatus, DEFAULT_RAM_LIMIT_PERCENT } from './memoryCheck';
-import { searxngSearch, SearchError, DEFAULT_LOCAL_SEARXNG_URL } from './searxngClient';
-import { wikipediaSearch, DEFAULT_WIKIPEDIA_URL } from './wikipediaClient';
-import type { SearchOutcome, SearchResult } from './types';
+import { getMemoryStatus, DEFAULT_RAM_LIMIT_PERCENT } from "./memoryCheck";
+import {
+  searxngSearch,
+  SearchError,
+  DEFAULT_LOCAL_SEARXNG_URL,
+} from "./searxngClient";
+import { wikipediaSearch, DEFAULT_WIKIPEDIA_URL } from "./wikipediaClient";
+import type { SearchOutcome, SearchResult } from "./types";
 
-export type RouteDecision = 'local' | 'low-ram' | 'local-failed' | 'local-empty';
+export type RouteDecision =
+  "local" | "low-ram" | "local-failed" | "local-empty";
 
 export interface RoutedSearchOutcome extends SearchOutcome {
   decision: RouteDecision;
@@ -12,7 +17,7 @@ export interface RoutedSearchOutcome extends SearchOutcome {
 type SearchFn = (
   query: string,
   baseUrl?: string,
-  options?: { timeoutMs?: number; maxResults?: number }
+  options?: { timeoutMs?: number; maxResults?: number },
 ) => Promise<SearchResult[]>;
 
 export interface RouterOptions {
@@ -35,7 +40,9 @@ function sleep(ms: number): Promise<void> {
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => {
-      reject(new SearchError(`Search attempt timed out after ${timeoutMs} ms.`));
+      reject(
+        new SearchError(`Search attempt timed out after ${timeoutMs} ms.`),
+      );
     }, timeoutMs);
     promise.then(
       (value) => {
@@ -45,17 +52,17 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
       (error) => {
         clearTimeout(timer);
         reject(error);
-      }
+      },
     );
   });
 }
 
 export async function routedSearch(
   query: string,
-  options: RouterOptions = {}
+  options: RouterOptions = {},
 ): Promise<RoutedSearchOutcome> {
-  if (query.trim() === '') {
-    throw new SearchError('Search query must not be empty.');
+  if (query.trim() === "") {
+    throw new SearchError("Search query must not be empty.");
   }
 
   const localUrl = options.localUrl ?? DEFAULT_LOCAL_SEARXNG_URL;
@@ -64,31 +71,32 @@ export async function routedSearch(
   const settleDelayMs = options.settleDelayMs ?? 1000;
   const attemptTimeoutMs = options.attemptTimeoutMs ?? 20000;
   const maxResults = options.maxResults ?? 8;
-  const getUsedPercent = options.getUsedPercent ?? (() => getMemoryStatus().usedPercent);
+  const getUsedPercent =
+    options.getUsedPercent ?? (() => getMemoryStatus().usedPercent);
   const localSearch = options.localSearch ?? searxngSearch;
   const fallbackSearch = options.fallbackSearch ?? wikipediaSearch;
 
   let decision: RouteDecision;
 
   if (getUsedPercent() >= ramLimitPercent) {
-    decision = 'low-ram';
+    decision = "low-ram";
   } else {
     await sleep(settleDelayMs);
     if (getUsedPercent() >= ramLimitPercent) {
-      decision = 'low-ram';
+      decision = "low-ram";
     } else {
-      decision = 'local';
+      decision = "local";
       try {
         const results = await withTimeout(
           localSearch(query, localUrl, { maxResults }),
-          attemptTimeoutMs
+          attemptTimeoutMs,
         );
         if (results.length > 0) {
-          return { results, searchSource: 'local', decision: 'local' };
+          return { results, searchSource: "local", decision: "local" };
         }
-        decision = 'local-empty';
+        decision = "local-empty";
       } catch {
-        decision = 'local-failed';
+        decision = "local-failed";
       }
     }
   }
@@ -96,11 +104,11 @@ export async function routedSearch(
   try {
     const results = await withTimeout(
       fallbackSearch(query, wikipediaUrl, { maxResults: 5 }),
-      attemptTimeoutMs
+      attemptTimeoutMs,
     );
-    return { results, searchSource: 'online', decision };
+    return { results, searchSource: "online", decision };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new SearchError('Search is unavailable: ' + message);
+    throw new SearchError("Search is unavailable: " + message);
   }
 }

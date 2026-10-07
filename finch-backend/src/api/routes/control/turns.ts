@@ -10,7 +10,10 @@ const router = Router();
 
 type TurnMode = "search" | "research";
 
-function readQuery(rawMode: unknown, rawHours: unknown): { mode: TurnMode; hours: number } {
+function readQuery(
+  rawMode: unknown,
+  rawHours: unknown,
+): { mode: TurnMode; hours: number } {
   if (rawMode !== "search" && rawMode !== "research") {
     throw new ValidationError("mode must be 'search' or 'research'");
   }
@@ -18,11 +21,15 @@ function readQuery(rawMode: unknown, rawHours: unknown): { mode: TurnMode; hours
   let hours = 24;
   if (rawHours !== undefined) {
     if (typeof rawHours !== "string" || !/^\d+$/.test(rawHours)) {
-      throw new ValidationError("hours must be a positive integer no greater than 168");
+      throw new ValidationError(
+        "hours must be a positive integer no greater than 168",
+      );
     }
     hours = parseInt(rawHours, 10);
     if (hours <= 0 || hours > 168) {
-      throw new ValidationError("hours must be a positive integer no greater than 168");
+      throw new ValidationError(
+        "hours must be a positive integer no greater than 168",
+      );
     }
   }
 
@@ -56,16 +63,28 @@ router.get("/recent", (req, res, next) => {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-function readRange(rawFrom: unknown, rawTo: unknown): { from: string; to: string } {
-  if (rawFrom !== undefined && (typeof rawFrom !== "string" || rawFrom.length === 0)) {
+function readRange(
+  rawFrom: unknown,
+  rawTo: unknown,
+): { from: string; to: string } {
+  if (
+    rawFrom !== undefined &&
+    (typeof rawFrom !== "string" || rawFrom.length === 0)
+  ) {
     throw new ValidationError("from and to must be non-empty strings");
   }
-  if (rawTo !== undefined && (typeof rawTo !== "string" || rawTo.length === 0)) {
+  if (
+    rawTo !== undefined &&
+    (typeof rawTo !== "string" || rawTo.length === 0)
+  ) {
     throw new ValidationError("from and to must be non-empty strings");
   }
 
   const to = typeof rawTo === "string" ? rawTo : new Date().toISOString();
-  const from = typeof rawFrom === "string" ? rawFrom : new Date(Date.now() - DAY_MS).toISOString();
+  const from =
+    typeof rawFrom === "string"
+      ? rawFrom
+      : new Date(Date.now() - DAY_MS).toISOString();
   return { from, to };
 }
 

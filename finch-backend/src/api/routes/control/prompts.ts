@@ -14,7 +14,7 @@ router.get("/", (_req, res, next) => {
   try {
     const rows = db
       .prepare(
-        "SELECT mode, system_prompt, updated_at FROM prompts ORDER BY mode"
+        "SELECT mode, system_prompt, updated_at FROM prompts ORDER BY mode",
       )
       .all() as Array<{
       mode: string;
@@ -29,14 +29,18 @@ router.get("/", (_req, res, next) => {
       MODES.map((mode) => {
         const row = byMode.get(mode);
         if (row && row.system_prompt.trim().length > 0) {
-          return { mode, systemPrompt: row.system_prompt, updatedAt: row.updated_at };
+          return {
+            mode,
+            systemPrompt: row.system_prompt,
+            updatedAt: row.updated_at,
+          };
         }
         return {
           mode,
           systemPrompt: getModeConfig(mode).systemPrompt,
           updatedAt: row?.updated_at ?? null,
         };
-      })
+      }),
     );
   } catch (err) {
     next(err);
@@ -52,7 +56,11 @@ router.put("/:mode", (req, res, next) => {
     const updated = loadPrompt(mode);
 
     logger.info("prompt updated", { mode });
-    res.json({ mode, systemPrompt: updated, updatedAt: new Date().toISOString() });
+    res.json({
+      mode,
+      systemPrompt: updated,
+      updatedAt: new Date().toISOString(),
+    });
   } catch (err) {
     if (err instanceof NotFoundError) {
       next(new ValidationError(err.message));

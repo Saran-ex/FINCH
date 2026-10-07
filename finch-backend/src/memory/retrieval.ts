@@ -4,10 +4,7 @@ import { getTopFacts } from "./repositories/factRepo.js";
 import { getLatestSummaryForMode } from "./repositories/summaryRepo.js";
 import { getModeConfig } from "../modes/manager.js";
 
-export function buildMemoryContext(
-  conversationId: number,
-  mode: Mode
-): string {
+export function buildMemoryContext(conversationId: number, mode: Mode): string {
   const cfg = getModeConfig(mode);
   if (!cfg.useMemory && !cfg.useSummaries) return "";
 
@@ -17,7 +14,7 @@ export function buildMemoryContext(
     const summary = getLatestSummaryForMode(mode);
     if (summary) {
       parts.push(
-        `Recent context summary (${summary.periodStart} to ${summary.periodEnd}):\n${summary.summaryText}`
+        `Recent context summary (${summary.periodStart} to ${summary.periodEnd}):\n${summary.summaryText}`,
       );
     }
   }

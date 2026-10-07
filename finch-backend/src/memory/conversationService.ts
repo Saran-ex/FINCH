@@ -24,7 +24,7 @@ export function recordActivity(conversationId: number): void {
 
 export function maybeSetTitleFromFirstMessage(
   conversationId: number,
-  firstMessageText: string
+  firstMessageText: string,
 ): void {
   const count = countMessages(conversationId);
   if (count > 0) return;
@@ -32,7 +32,6 @@ export function maybeSetTitleFromFirstMessage(
   const trimmed = firstMessageText.trim();
   if (!trimmed) return;
 
-  const title =
-    trimmed.length > 60 ? trimmed.slice(0, 57) + "..." : trimmed;
+  const title = trimmed.length > 60 ? trimmed.slice(0, 57) + "..." : trimmed;
   updateConversationTitle(conversationId, title);
 }

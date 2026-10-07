@@ -1,4 +1,4 @@
-import type { SearchResult, SearchSource } from './types';
+import type { SearchResult, SearchSource } from "./types";
 
 export const SEARCH_SYSTEM_PROMPT_DRAFT = `You are Finch in Search mode. Answer the user's question using ONLY the numbered web sources given in the message.
 Rules:
@@ -31,7 +31,8 @@ Rules:
 7. Output only the JSON object. No markdown fences, no commentary, no trailing text.`;
 
 export function buildResearchDirectionsPrompt(categories: string[]): string {
-  const categoryList = categories.length > 0 ? categories.join(", ") : "General";
+  const categoryList =
+    categories.length > 0 ? categories.join(", ") : "General";
   return `You are Finch in Research mode. The user has asked a broad question. Before any searching happens, offer the user 5 directions they could explore.
 
 For each direction, you must also choose ONE category from this exact list that best fits what the direction is actually about:
@@ -60,7 +61,7 @@ const TITLE_MAX_LENGTH = 150;
 
 // Removes angle brackets, collapses whitespace runs, trims.
 function cleanText(value: string): string {
-  return value.replace(/[<>]/g, '').replace(/\s+/g, ' ').trim();
+  return value.replace(/[<>]/g, "").replace(/\s+/g, " ").trim();
 }
 
 function cleanTitle(title: string): string {
@@ -69,12 +70,12 @@ function cleanTitle(title: string): string {
 
 function cleanSnippet(snippet: string): string {
   const cleaned = cleanText(snippet);
-  return cleaned.length > 0 ? cleaned : '(no description)';
+  return cleaned.length > 0 ? cleaned : "(no description)";
 }
 
 function buildSourcesBlock(results: SearchResult[]): string {
   if (results.length === 0) {
-    return 'No sources were found.';
+    return "No sources were found.";
   }
 
   const entries = results.map((result, index) => {
@@ -84,16 +85,21 @@ function buildSourcesBlock(results: SearchResult[]): string {
     return `[${index + 1}] ${title} | ${domain}\n${snippet}`;
   });
 
-  return entries.join('\n\n');
+  return entries.join("\n\n");
 }
 
 export function buildSearchUserPrompt(
   question: string,
   results: SearchResult[],
-  searchSource: SearchSource
+  searchSource: SearchSource,
 ): string {
   const trimmedQuestion = question.trim().slice(0, QUESTION_MAX_LENGTH);
-  const sourceLabel = searchSource === 'local' ? 'local search' : searchSource === 'research' ? 'research databases' : 'online search';
+  const sourceLabel =
+    searchSource === "local"
+      ? "local search"
+      : searchSource === "research"
+        ? "research databases"
+        : "online search";
   const sourcesBlock = buildSourcesBlock(results);
 
   return `Question: ${trimmedQuestion}

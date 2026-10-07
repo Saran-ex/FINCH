@@ -16,6 +16,8 @@ import {
   type VoiceEngine,
 } from "@/lib/api";
 import { useOrganizer } from "@/lib/organizerStore";
+import { useModeModels, resolveModelValue } from "@/lib/useModeModels";
+import "@/lib/controlRoomStore"; // ensures the stored theme is applied on load
 import { SpeechBuffer } from "@/lib/speechBuffer";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -95,14 +97,27 @@ function wakeQueue(queue: SpeechQueue): void {
 function Index() {
   const [mode, setMode] = useState<Mode>("conversation");
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
-  const [aiReply, setAiReply] = useState<string>("");
   const [voiceResult, setVoiceResult] = useState<TurnResponse | null>(null);
   const [isThinking, setIsThinking] = useState<boolean>(false);
   const [backendError, setBackendError] = useState<string | null>(null);
+  // Set only when a live turn's speech never reached the speaker, since the
+  // conversation reply is heard rather than read.
+  const [speechError, setSpeechError] = useState<string | null>(null);
   // Every mode reads its persisted model pick from Settings → Organizer.
   const organizer = useOrganizer();
 
   const modelFor = (targetMode: Mode): string | undefined => organizer.models[targetMode];
+  const online = mode === "search" || mode === "research";
+  const modeModelState = useModeModels(mode);
+  const effectiveModel = resolveModelValue(
+    modeModelState.options,
+    modeModelState.defaultAlias,
+    organizer.models[mode],
+  );
+  const activeModelName =
+    modeModelState.options.find((option) => option.alias === effectiveModel)?.displayName ??
+    effectiveModel ??
+    "Default";
 
   const {
     state: recognitionState,
@@ -204,6 +219,11 @@ function Index() {
     async (queue: SpeechQueue, voiceTurn: string, engine?: VoiceEngine) => {
       const seq = speechSeqRef.current;
       const sentStart = Date.now();
+      // Whether speech was actually owed, and whether any audio ever started —
+      // if the first never happens the turn was silent by design (no reply, or
+      // a non-conversation mode), if the second never happens it failed.
+      let speechOwed = false;
+      let speechStarted = false;
 
       const loadChunk = async (chunk: string, index: number): Promise<string | null> => {
         if (index === 0) {
@@ -246,6 +266,7 @@ function Index() {
           void audio
             .play()
             .then(() => {
+              speechStarted = true;
               if (settled || !isFirst) return;
               console.log(
                 `[voice-timing] turn=${voiceTurn} stage=playing at=${new Date().toISOString()} ms=${Date.now() - sentStart}`,
@@ -294,6 +315,7 @@ function Index() {
               if (queue.done) break; // stream over and queue drained
               continue;
             }
+            speechOwed = true;
             loading = loadChunk(chunk, index);
           }
 
@@ -323,6 +345,11 @@ function Index() {
         // has already done so in stopSpeaking.
         if (speechSeqRef.current === seq) {
           setVoiceState((prev) => (prev === "speaking" ? "idle" : prev));
+          // A live turn that owed speech but never started playing: the reply
+          // is no longer shown on screen either, so say what happened.
+          if (speechOwed && !speechStarted) {
+            setSpeechError("Speech playback failed. Check your audio output.");
+          }
         }
       }
     },
@@ -344,6 +371,7 @@ function Index() {
     async function handleTranscript() {
       setIsThinking(true);
       setBackendError(null);
+      setSpeechError(null);
       console.log(
         `[voice-timing] turn=${currentVoiceTurnId || "-"} stage=turn-sent at=${new Date().toISOString()} mode=${currentMode}`,
       );
@@ -385,7 +413,6 @@ function Index() {
       const feedStream = (delta: string, pipeline?: string): void => {
         if (pipeline === "sequential") sequentialReply = true;
         spoken += delta;
-        setAiReply(spoken);
         if (queue.replyShownAt === undefined) {
           queue.replyShownAt = Date.now();
           console.log(
@@ -462,9 +489,8 @@ function Index() {
 
         // The backend streams every spoken character as a delta; this only
         // fires when the reply arrived as a single fallback event.
-        if (!spoken && result.reply) {
-          setAiReply(result.reply);
-          if (!sequentialReply) enqueueText(result.reply);
+        if (!spoken && result.reply && !sequentialReply) {
+          enqueueText(result.reply);
         }
       } catch (err) {
         // The stream attempt is over either way — mark it so the effect
@@ -550,7 +576,7 @@ function Index() {
         <ConversationMode
           voiceState={voiceState}
           onVoiceChange={handleVoiceClick}
-          aiReply={aiReply}
+          speechError={speechError}
         />
       )}
       {mode === "plan" && <PlanMode onSubmit={handleModeSubmit} selectedModel={modelFor("plan")} />}
@@ -584,7 +610,17 @@ function Index() {
         <VoiceControl state={voiceState} onClick={handleVoiceClick} disabled={!isSupported} />
       )}
       <div className="system-status" aria-hidden="true">
-        <span /> FINCH ONLINE
+        <span className={online ? undefined : "offline"} />
+        {online ? "FINCH ONLINE" : "FINCH OFFLINE"}
+      </div>
+      <div className="mode-model-indicator" aria-hidden="true">
+        Model: {activeModelName}
+        {mode === "conversation" && (
+          <>
+            <br />
+            Voice: {organizer.voiceEngine ?? "Default"}
+          </>
+        )}
       </div>
       {!isSupported && (
         <div className="voice-unsupported-notice" role="alert">

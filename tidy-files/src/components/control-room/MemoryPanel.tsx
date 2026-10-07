@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
@@ -19,6 +20,7 @@ import {
   discardMemoryBatch,
   getMemoryBox,
   getModeMessages,
+  deleteModeMessage,
   getControlModels,
   ApiRequestError,
   type MemorySummarizeStatus,
@@ -209,7 +211,7 @@ export function MemoryPanel() {
       setSummarizeJobId(null);
       setSummarizePhase("idle");
       setResultMessage(
-        `Saved. Deleted ${result.deletedTotal} messages (${formatDeletedByMode(result.deletedByMode)})`
+        `Saved. Deleted ${result.deletedTotal} messages (${formatDeletedByMode(result.deletedByMode)})`,
       );
       setRefreshTick((tick) => tick + 1);
     } catch (err) {
@@ -253,6 +255,25 @@ export function MemoryPanel() {
   const [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
   const [boxEntries, setBoxEntries] = React.useState<SavedMemoryEntry[]>([]);
   const [resultMessage, setResultMessage] = React.useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = React.useState<ModeMessage | null>(null);
+  const [deleteBusy, setDeleteBusy] = React.useState(false);
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
+
+  const handleDeleteMessage = async () => {
+    const target = deleteTarget;
+    if (!target || deleteBusy) return;
+    setDeleteBusy(true);
+    setDeleteError(null);
+    try {
+      await deleteModeMessage(target.id);
+      setModeMessages((prev) => prev.filter((m) => m.id !== target.id));
+      setDeleteTarget(null);
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
 
   const loadBox = async () => {
     try {
@@ -354,7 +375,7 @@ export function MemoryPanel() {
                 className={cn(
                   "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
                   "data-[state=on]:bg-white/60 data-[state=on]:text-foreground data-[state=on]:shadow-sm",
-                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                 )}
               >
                 {VIEW_LABELS[view]}
@@ -369,21 +390,21 @@ export function MemoryPanel() {
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent className="bg-white border-zinc-200">
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Summarize which period?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Choose the period you want to summarize.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <ModelPicker
-                  options={modelOptions}
-                  defaultAlias={DEFAULT_SUMMARIZE_ALIAS}
-                  value={summarizeModel}
-                  onChange={setSummarizeModel}
-                  disabled={isSummarizing || batchBusy}
-                  loading={modelsLoading}
-                />
-                <AlertDialogFooter>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Summarize which period?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Choose the period you want to summarize.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <ModelPicker
+                options={modelOptions}
+                defaultAlias={DEFAULT_SUMMARIZE_ALIAS}
+                value={summarizeModel}
+                onChange={setSummarizeModel}
+                disabled={isSummarizing || batchBusy}
+                loading={modelsLoading}
+              />
+              <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   disabled={isSummarizing || batchBusy}
@@ -402,9 +423,7 @@ export function MemoryPanel() {
           </AlertDialog>
         </div>
 
-        {summarizeError && (
-          <p className="text-xs text-destructive">{summarizeError}</p>
-        )}
+        {summarizeError && <p className="text-xs text-destructive">{summarizeError}</p>}
 
         {isSummarizing && (
           <p className="text-sm text-zinc-600">
@@ -422,8 +441,10 @@ export function MemoryPanel() {
               <>
                 <p className="text-xs text-zinc-500">
                   {summarizeStatus.preview.period_start} → {summarizeStatus.preview.period_end}
-                  {" · "}{summarizeStatus.preview.source_msg_count} messages scanned
-                  {" · batch "}{summarizeStatus.preview.id}
+                  {" · "}
+                  {summarizeStatus.preview.source_msg_count} messages scanned
+                  {" · batch "}
+                  {summarizeStatus.preview.id}
                 </p>
 
                 <div className="space-y-3">
@@ -443,7 +464,8 @@ export function MemoryPanel() {
                         {entry.summary_text}
                       </p>
                       <p className="text-xs text-zinc-500">
-                        {parseSourceIds(entry.source_message_ids).length} messages will be deleted if confirmed
+                        {parseSourceIds(entry.source_message_ids).length} messages will be deleted
+                        if confirmed
                       </p>
                     </div>
                   ))}
@@ -462,12 +484,7 @@ export function MemoryPanel() {
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap pt-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={batchBusy}
-                    onClick={handleDiscard}
-                  >
+                  <Button variant="ghost" size="sm" disabled={batchBusy} onClick={handleDiscard}>
                     Discard
                   </Button>
                   <AlertDialog
@@ -510,9 +527,32 @@ export function MemoryPanel() {
           </div>
         )}
 
-        {resultMessage && (
-          <p className="text-sm text-zinc-600">{resultMessage}</p>
-        )}
+        {resultMessage && <p className="text-sm text-zinc-600">{resultMessage}</p>}
+
+        {deleteError && <p className="text-xs text-destructive">{deleteError}</p>}
+
+        <AlertDialog
+          open={deleteTarget !== null}
+          onOpenChange={(open) => {
+            if (!open && !deleteBusy) setDeleteTarget(null);
+          }}
+        >
+          <AlertDialogContent className="bg-white border-zinc-200">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete this message?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This permanently removes the message from this mode's history. It cannot be
+                restored.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleteBusy}>Cancel</AlertDialogCancel>
+              <AlertDialogAction disabled={deleteBusy} onClick={handleDeleteMessage}>
+                Delete message
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <div className="max-h-[60vh] overflow-y-auto overflow-x-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {activeView === "memory-box" ? (
@@ -522,7 +562,9 @@ export function MemoryPanel() {
               <div className="space-y-4 p-1">
                 {groupedBox.map((group) => (
                   <div key={group.key} className="space-y-2">
-                    <p className="text-xs uppercase tracking-wider text-zinc-500 px-2">{group.key}</p>
+                    <p className="text-xs uppercase tracking-wider text-zinc-500 px-2">
+                      {group.key}
+                    </p>
                     {group.items.map((entry) => (
                       <div
                         key={entry.id}
@@ -562,6 +604,16 @@ export function MemoryPanel() {
                         <span className="text-xs font-medium text-zinc-700">
                           {ROLE_LABELS[message.role] ?? message.role}
                         </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          aria-label="Delete message"
+                          disabled={deleteBusy}
+                          onClick={() => setDeleteTarget(message)}
+                          className="ml-auto size-6 p-0 text-zinc-400 hover:text-destructive"
+                        >
+                          <Trash2 aria-hidden="true" />
+                        </Button>
                       </div>
                       <p className="text-sm text-zinc-700 whitespace-pre-wrap break-words">
                         {clipText(message.content)}

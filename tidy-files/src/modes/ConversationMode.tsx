@@ -1,26 +1,34 @@
-import { FinchViewport } from '@/components/finch/FinchViewport';
-import type { VoiceState } from '@/types/mode';
+import { FinchOrb } from "@/components/finch/FinchOrb";
+import type { VoiceState } from "@/types/mode";
+
+function timeOfDayGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return "Good morning.";
+  if (hour >= 12 && hour < 18) return "Good afternoon.";
+  return "Good evening.";
+}
 
 export function ConversationMode({
   voiceState,
   onVoiceChange,
-  aiReply,
+  speechError,
 }: {
   voiceState: VoiceState;
   onVoiceChange: () => void;
-  aiReply?: string;
+  speechError?: string | null;
 }) {
   return (
-    <section className='mode-scene conversation-scene' aria-label='Conversation mode'>
-      <div className='scene-heading'>
-        <span className='scene-kicker'>FINCH / 01</span>
-        <h1>Good morning.</h1>
+    <section className="mode-scene conversation-scene" aria-label="Conversation mode">
+      <div className="scene-heading">
+        <span className="scene-kicker">FINCH / 01</span>
+        <h1>{timeOfDayGreeting()}</h1>
       </div>
-      <FinchViewport />
-      {aiReply && (
-        <div className='ai-reply-display' aria-live='polite'>
-          <span className='reply-label'>Finch:</span>
-          <span className='reply-text'>{aiReply}</span>
+      <FinchOrb voiceState={voiceState} />
+      {/* The reply is spoken, not shown; this is the only fallback when the
+          speaker never started. Stacked above the recognition-error pill. */}
+      {speechError && (
+        <div className="voice-error-notice" role="alert" style={{ bottom: "9.5rem" }}>
+          {speechError}
         </div>
       )}
     </section>

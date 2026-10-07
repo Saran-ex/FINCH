@@ -159,7 +159,7 @@ export function PromptsPanel() {
             className={cn(
               "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
               "data-[state=on]:bg-white/60 data-[state=on]:text-foreground data-[state=on]:shadow-sm",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
             )}
           >
             {MODE_LABELS[mode]}
@@ -177,7 +177,9 @@ export function PromptsPanel() {
       )}
 
       <div className="space-y-4">
-        <label className="text-xs uppercase tracking-wider text-zinc-500">System prompt for {MODE_LABELS[activeMode]}</label>
+        <label className="text-xs uppercase tracking-wider text-zinc-500">
+          System prompt for {MODE_LABELS[activeMode]}
+        </label>
         <Textarea
           value={prompt}
           onChange={(e) => handlePromptChange(e.target.value)}

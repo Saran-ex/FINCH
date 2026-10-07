@@ -1,6 +1,9 @@
 import { Router } from "express";
 import { db } from "../../../db/client.js";
-import { validateCategoryBody, validateSiteBody } from "../../schemas/controlSchema.js";
+import {
+  validateCategoryBody,
+  validateSiteBody,
+} from "../../schemas/controlSchema.js";
 import { NotFoundError, ValidationError } from "../../../services/errors.js";
 import { logger } from "../../../services/logger.js";
 
@@ -47,7 +50,9 @@ function categoryCount(): number {
 
 function siteCount(categoryId: number): number {
   const row = db
-    .prepare("SELECT COUNT(*) AS count FROM research_resource_sites WHERE category_id = ?")
+    .prepare(
+      "SELECT COUNT(*) AS count FROM research_resource_sites WHERE category_id = ?",
+    )
     .get(categoryId) as { count: number };
   return row.count;
 }
@@ -55,13 +60,18 @@ function siteCount(categoryId: number): number {
 router.get("/", (_req, res, next) => {
   try {
     const categories = db
-      .prepare("SELECT id, name FROM research_resource_categories ORDER BY name ASC")
+      .prepare(
+        "SELECT id, name FROM research_resource_categories ORDER BY name ASC",
+      )
       .all() as CategoryRow[];
 
-    const sitesByCategory = new Map<number, Array<{ id: number; url: string }>>();
+    const sitesByCategory = new Map<
+      number,
+      Array<{ id: number; url: string }>
+    >();
     const sites = db
       .prepare(
-        "SELECT id, category_id, url FROM research_resource_sites ORDER BY url ASC"
+        "SELECT id, category_id, url FROM research_resource_sites ORDER BY url ASC",
       )
       .all() as SiteRow[];
     for (const site of sites) {
@@ -98,7 +108,9 @@ router.post("/categories", (req, res, next) => {
       .run(name);
 
     logger.info("research resource category created", { name });
-    res.status(201).json({ id: Number(result.lastInsertRowid), name, sites: [] });
+    res
+      .status(201)
+      .json({ id: Number(result.lastInsertRowid), name, sites: [] });
   } catch (err) {
     next(err);
   }
@@ -142,7 +154,7 @@ router.post("/categories/:id/sites", (req, res, next) => {
 
     const duplicate = db
       .prepare(
-        "SELECT 1 FROM research_resource_sites WHERE category_id = ? AND url = ?"
+        "SELECT 1 FROM research_resource_sites WHERE category_id = ? AND url = ?",
       )
       .get(categoryId, url);
     if (duplicate) {
@@ -151,7 +163,7 @@ router.post("/categories/:id/sites", (req, res, next) => {
 
     const result = db
       .prepare(
-        "INSERT INTO research_resource_sites (category_id, url) VALUES (?, ?)"
+        "INSERT INTO research_resource_sites (category_id, url) VALUES (?, ?)",
       )
       .run(categoryId, url);
 

@@ -32,7 +32,10 @@ function paramSizeOf(ollamaModel: string): string {
   return tag.split("-")[0];
 }
 
-export function mapModeForResponse(m: ReturnType<typeof getModeConfig>, installed: string[] | null) {
+export function mapModeForResponse(
+  m: ReturnType<typeof getModeConfig>,
+  installed: string[] | null,
+) {
   const primaryDisplayName = getAlias(m.primaryAlias).displayName;
   const fallbackDisplayName = m.fallbackAlias
     ? getAlias(m.fallbackAlias).displayName
@@ -41,7 +44,7 @@ export function mapModeForResponse(m: ReturnType<typeof getModeConfig>, installe
   const allowedAliases = resolveAllowedAliases(m.mode);
   const rows = db
     .prepare(
-      "SELECT id, alias, display_name, ollama_model, enabled FROM model_aliases ORDER BY id"
+      "SELECT id, alias, display_name, ollama_model, enabled FROM model_aliases ORDER BY id",
     )
     .all() as AliasRow[];
   const byAlias = new Map(rows.map((r) => [r.alias, r]));
@@ -92,7 +95,12 @@ router.put("/:mode", async (req, res, next) => {
     const body = validateModeBody(req.body);
     updateModeSettings(mode, body);
     logger.info("mode updated", { mode, changes: body });
-    res.json(mapModeForResponse(getModeConfig(mode), await tryListInstalledModelNames()));
+    res.json(
+      mapModeForResponse(
+        getModeConfig(mode),
+        await tryListInstalledModelNames(),
+      ),
+    );
   } catch (err) {
     if (err instanceof NotFoundError) {
       next(new ValidationError(err.message));
@@ -131,7 +139,9 @@ export function updateModeSettings(
     for (const alias of body.allowedAliases) {
       const info = getAlias(alias);
       if (!info.enabled) {
-        throw new ValidationError(`Model '${alias}' is disabled and cannot be allowed`);
+        throw new ValidationError(
+          `Model '${alias}' is disabled and cannot be allowed`,
+        );
       }
     }
   }

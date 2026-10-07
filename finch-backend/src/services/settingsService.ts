@@ -8,9 +8,9 @@ type SettingRow = {
 };
 
 export function getSetting<T>(key: string, fallback: T): T {
-  const row = db.prepare(
-    "SELECT value FROM settings WHERE key = ?"
-  ).get(key) as SettingRow | undefined;
+  const row = db
+    .prepare("SELECT value FROM settings WHERE key = ?")
+    .get(key) as SettingRow | undefined;
 
   if (!row) return fallback;
 
@@ -29,6 +29,6 @@ export function setSetting<T>(key: string, value: T): void {
      VALUES (?, ?, datetime('now'))
      ON CONFLICT(key) DO UPDATE SET
        value = excluded.value,
-       updated_at = excluded.updated_at`
+       updated_at = excluded.updated_at`,
   ).run(key, json);
 }

@@ -14,7 +14,9 @@ export function runMigrations(): void {
   `);
 
   const applied = new Set(
-    (db.prepare("SELECT name FROM migrations").all() as MigrationRow[]).map((r) => r.name)
+    (db.prepare("SELECT name FROM migrations").all() as MigrationRow[]).map(
+      (r) => r.name,
+    ),
   );
 
   for (const m of migrations) {

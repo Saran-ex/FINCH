@@ -53,7 +53,11 @@ export function ResearchResourcesPanel() {
   const [siteErrors, setSiteErrors] = React.useState<Record<number, string | null>>({});
   const [categoryDraft, setCategoryDraft] = React.useState("");
   const [categoryError, setCategoryError] = React.useState<string | null>(null);
-  const [trustEntries, setTrustEntries] = React.useState<TrustEntriesResponse>({ high: [], suffix: [], low: [] });
+  const [trustEntries, setTrustEntries] = React.useState<TrustEntriesResponse>({
+    high: [],
+    suffix: [],
+    low: [],
+  });
   const [trustDrafts, setTrustDrafts] = React.useState<Record<TrustEntryKind, string>>({
     high: "",
     suffix: "",
@@ -233,11 +237,16 @@ export function ResearchResourcesPanel() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xs uppercase tracking-wider text-zinc-500">Research Resources</h2>
-        <p className="text-xs text-zinc-500">Trustworthy websites grouped by category, max 10 each.</p>
+        <p className="text-xs text-zinc-500">
+          Trustworthy websites grouped by category, max 10 each.
+        </p>
       </div>
 
       {error && (
-        <p role="alert" className="text-xs text-red-600 border border-red-200 bg-red-50 rounded-md px-3 py-2">
+        <p
+          role="alert"
+          className="text-xs text-red-600 border border-red-200 bg-red-50 rounded-md px-3 py-2"
+        >
           {error}
         </p>
       )}
@@ -271,7 +280,9 @@ export function ResearchResourcesPanel() {
                     key={site.id}
                     className="flex items-start gap-4 p-4 rounded-xl bg-white/30 border border-white/40"
                   >
-                    <p className="flex-1 min-w-0 text-sm font-medium text-zinc-900 break-all">{site.url}</p>
+                    <p className="flex-1 min-w-0 text-sm font-medium text-zinc-900 break-all">
+                      {site.url}
+                    </p>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -344,7 +355,9 @@ export function ResearchResourcesPanel() {
         </div>
       </div>
 
-      <h2 className="text-xs uppercase tracking-wider text-zinc-500 pt-4 border-t border-white/40">Trust list</h2>
+      <h2 className="text-xs uppercase tracking-wider text-zinc-500 pt-4 border-t border-white/40">
+        Trust list
+      </h2>
 
       <div className="space-y-6">
         {TRUST_SECTIONS.map((section) => {
@@ -360,15 +373,15 @@ export function ResearchResourcesPanel() {
               </div>
 
               <div className="space-y-2">
-                {entries.length === 0 && (
-                  <p className="text-xs text-zinc-500">No entries yet.</p>
-                )}
+                {entries.length === 0 && <p className="text-xs text-zinc-500">No entries yet.</p>}
                 {entries.map((entry) => (
                   <div
                     key={entry.id}
                     className="flex items-start gap-4 p-4 rounded-xl bg-white/30 border border-white/40"
                   >
-                    <p className="flex-1 min-w-0 text-sm font-medium text-zinc-900 break-all">{entry.value}</p>
+                    <p className="flex-1 min-w-0 text-sm font-medium text-zinc-900 break-all">
+                      {entry.value}
+                    </p>
                     <Button
                       variant="ghost"
                       size="sm"

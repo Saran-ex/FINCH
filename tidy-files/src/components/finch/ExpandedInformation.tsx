@@ -23,7 +23,15 @@ function hostOf(url: string): string {
   }
 }
 
-export function ExpandedInformation({ eyebrow, title, detail, connections, image, links, onClose }: ExpandedInformationProps) {
+export function ExpandedInformation({
+  eyebrow,
+  title,
+  detail,
+  connections,
+  image,
+  links,
+  onClose,
+}: ExpandedInformationProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const [closing, setClosing] = useState(false);
   const closeTimerRef = useRef<number | null>(null);
@@ -47,9 +55,27 @@ export function ExpandedInformation({ eyebrow, title, detail, connections, image
   }, []);
 
   return (
-    <div className={"expanded-backdrop" + (closing ? " expanded-closing" : "")} role="presentation" onClick={handleClose}>
-      <article className={"expanded-information expanded-scrollable" + (closing ? " expanded-closing" : "")} role="dialog" aria-modal="true" aria-label={title} onClick={(event) => event.stopPropagation()}>
-        <Button variant="glassIcon" size="icon" className="expanded-close" onClick={handleClose} aria-label="Close expanded information">
+    <div
+      className={"expanded-backdrop" + (closing ? " expanded-closing" : "")}
+      role="presentation"
+      onClick={handleClose}
+    >
+      <article
+        className={
+          "expanded-information expanded-scrollable" + (closing ? " expanded-closing" : "")
+        }
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <Button
+          variant="glassIcon"
+          size="icon"
+          className="expanded-close"
+          onClick={handleClose}
+          aria-label="Close expanded information"
+        >
           <X />
         </Button>
         <div className="expanded-index">FINCH / {eyebrow.toUpperCase()}</div>
@@ -62,7 +88,13 @@ export function ExpandedInformation({ eyebrow, title, detail, connections, image
             loading="lazy"
             referrerPolicy="no-referrer"
             onError={() => setImageFailed(true)}
-            style={{ width: "100%", maxHeight: "16rem", objectFit: "cover", borderRadius: ".6rem", display: "block" }}
+            style={{
+              width: "100%",
+              maxHeight: "16rem",
+              objectFit: "cover",
+              borderRadius: ".6rem",
+              display: "block",
+            }}
           />
         )}
         <div className="expanded-divider" />
@@ -72,14 +104,18 @@ export function ExpandedInformation({ eyebrow, title, detail, connections, image
             {links.map((url, index) => (
               <span key={url}>
                 {index > 0 && " · "}
-                <a href={url} target="_blank" rel="noopener noreferrer">{hostOf(url)}</a>
+                <a href={url} target="_blank" rel="noopener noreferrer">
+                  {hostOf(url)}
+                </a>
               </span>
             ))}
           </div>
         )}
         {connections && (
           <div className="connection-list">
-            {connections.map((connection) => <span key={connection}>{connection}</span>)}
+            {connections.map((connection) => (
+              <span key={connection}>{connection}</span>
+            ))}
           </div>
         )}
       </article>

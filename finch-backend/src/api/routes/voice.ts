@@ -1,6 +1,10 @@
 import { Router, raw } from "express";
 import type { Request, Response } from "express";
-import { getVoiceHealth, synthesizeSpeech, transcribeWav } from "@/services/voice.js";
+import {
+  getVoiceHealth,
+  synthesizeSpeech,
+  transcribeWav,
+} from "@/services/voice.js";
 import { ValidationError } from "@/services/errors.js";
 import { logger, timingLine } from "@/services/logger.js";
 
@@ -21,7 +25,9 @@ function voiceTurnId(req: Request): string {
 // to now — i.e. upload + body parse time.
 function uploadMs(res: Response): number {
   const receivedAt = res.locals.receivedAt;
-  return Date.now() - (typeof receivedAt === "number" ? receivedAt : Date.now());
+  return (
+    Date.now() - (typeof receivedAt === "number" ? receivedAt : Date.now())
+  );
 }
 
 // Turn ids whose first /speak response already logged stage=first-audio-after-text.
@@ -29,43 +35,69 @@ function uploadMs(res: Response): number {
 // the "first audio after text" measurement. "-" (no turn id) is never deduped —
 // ad-hoc curl measurements arrive without the header.
 const firstAudioSeen = new Set<string>();
-function logFirstAudioAfterText(turn: string, engine: string, res: Response): void {
+function logFirstAudioAfterText(
+  turn: string,
+  engine: string,
+  res: Response,
+): void {
   if (turn !== "-" && firstAudioSeen.has(turn)) return;
   if (turn !== "-") {
     firstAudioSeen.add(turn);
     // Bound the set: keep the newest ~250 ids when it grows past 500.
     if (firstAudioSeen.size > 500) {
       const oldest = firstAudioSeen.values();
-      for (let i = 0; i < 250; i++) firstAudioSeen.delete(oldest.next().value as string);
+      for (let i = 0; i < 250; i++)
+        firstAudioSeen.delete(oldest.next().value as string);
     }
   }
   const receivedAt = res.locals.receivedAt;
-  const ms = Date.now() - (typeof receivedAt === "number" ? receivedAt : Date.now());
-  logger.info(timingLine(turn, "first-audio-after-text", ms, `engine=${engine}`));
+  const ms =
+    Date.now() - (typeof receivedAt === "number" ? receivedAt : Date.now());
+  logger.info(
+    timingLine(turn, "first-audio-after-text", ms, `engine=${engine}`),
+  );
 }
 
-router.post("/transcribe", raw({ type: () => true, limit: TRANSCRIBE_BODY_LIMIT }), async (req, res, next) => {
-  try {
-    const body = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
-    const turn = voiceTurnId(req);
-    logger.info(timingLine(turn, "transcribe-upload", uploadMs(res), `bytes=${body.length}`));
+router.post(
+  "/transcribe",
+  raw({ type: () => true, limit: TRANSCRIBE_BODY_LIMIT }),
+  async (req, res, next) => {
+    try {
+      const body = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+      const turn = voiceTurnId(req);
+      logger.info(
+        timingLine(
+          turn,
+          "transcribe-upload",
+          uploadMs(res),
+          `bytes=${body.length}`,
+        ),
+      );
 
-    const whisperStart = Date.now();
-    // wk- ids are background wake-word segment checks: they use the fast
-    // base model. Everything else (manual mic, finished wake captures) is a
-    // real turn and gets the accurate small model.
-    const kind = turn.startsWith("wk-") ? "wake" : "real";
-    const text = await transcribeWav(body, kind);
-    // Manual measurement #1: whisper duration (stage=transcribe-done). The
-    // caller times speech-end → transcript-received with a stopwatch; this
-    // line isolates the whisper cost inside that window.
-    logger.info(timingLine(turn, "transcribe-done", Date.now() - whisperStart, `chars=${text.length}`));
+      const whisperStart = Date.now();
+      // wk- ids are background wake-word segment checks: they use the fast
+      // base model. Everything else (manual mic, finished wake captures) is a
+      // real turn and gets the accurate small model.
+      const kind = turn.startsWith("wk-") ? "wake" : "real";
+      const text = await transcribeWav(body, kind);
+      // Manual measurement #1: whisper duration (stage=transcribe-done). The
+      // caller times speech-end → transcript-received with a stopwatch; this
+      // line isolates the whisper cost inside that window.
+      logger.info(
+        timingLine(
+          turn,
+          "transcribe-done",
+          Date.now() - whisperStart,
+          `chars=${text.length}`,
+        ),
+      );
 
-    res.json({ text });
-  } catch (err) {
-    next(err);
-  }
-});
+      res.json({ text });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 router.post("/speak", async (req, res, next) => {
   try {
@@ -77,21 +109,52 @@ router.post("/speak", async (req, res, next) => {
     // means "use the configured default" — the pre-picker behaviour.
     let engine: "kokoro" | "piper" | "kitten" | undefined;
     if (body.engine !== undefined) {
-      if (body.engine !== "kokoro" && body.engine !== "piper" && body.engine !== "kitten") {
-        throw new ValidationError("'engine' must be 'kokoro', 'piper' or 'kitten'");
+      if (
+        body.engine !== "kokoro" &&
+        body.engine !== "piper" &&
+        body.engine !== "kitten"
+      ) {
+        throw new ValidationError(
+          "'engine' must be 'kokoro', 'piper' or 'kitten'",
+        );
       }
       engine = body.engine;
     }
     const turn = voiceTurnId(req);
-    logger.info(timingLine(turn, "speak-upload", uploadMs(res), `chars=${body.text.length}`));
+    logger.info(
+      timingLine(
+        turn,
+        "speak-upload",
+        uploadMs(res),
+        `chars=${body.text.length}`,
+      ),
+    );
 
     const ttsStart = Date.now();
-    const { wav, engine: usedEngine, fallbackReason } = await synthesizeSpeech(body.text, engine);
-    logger.info(timingLine(turn, "tts", Date.now() - ttsStart, `engine=${usedEngine} bytes=${wav.length}`));
+    const {
+      wav,
+      engine: usedEngine,
+      fallbackReason,
+    } = await synthesizeSpeech(body.text, engine);
+    logger.info(
+      timingLine(
+        turn,
+        "tts",
+        Date.now() - ttsStart,
+        `engine=${usedEngine} bytes=${wav.length}`,
+      ),
+    );
     if (fallbackReason) {
       // Configured engine failed; Piper produced this audio instead.
       const reason = fallbackReason.replace(/\s+/g, "_").slice(0, 200);
-      logger.warn(timingLine(turn, "tts-fallback", Date.now() - ttsStart, `engine=piper reason=${reason}`));
+      logger.warn(
+        timingLine(
+          turn,
+          "tts-fallback",
+          Date.now() - ttsStart,
+          `engine=piper reason=${reason}`,
+        ),
+      );
     }
     // Manual measurements #3/#4: first audio bytes ready after the text was
     // known. ms runs from the /speak request arrival (receivedAt in app.ts);

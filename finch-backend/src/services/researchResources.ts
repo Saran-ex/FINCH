@@ -4,7 +4,9 @@ import { logger } from "./logger.js";
 export function listResearchResourceCategoryNames(): string[] {
   try {
     const rows = db
-      .prepare("SELECT name FROM research_resource_categories ORDER BY name ASC")
+      .prepare(
+        "SELECT name FROM research_resource_categories ORDER BY name ASC",
+      )
       .all() as Array<{ name: string }>;
     return rows.map((row) => row.name);
   } catch (err) {
@@ -15,14 +17,16 @@ export function listResearchResourceCategoryNames(): string[] {
   }
 }
 
-export function listResearchResourceSitesForCategory(categoryName: string): string[] {
+export function listResearchResourceSitesForCategory(
+  categoryName: string,
+): string[] {
   try {
     const rows = db
       .prepare(
         `SELECT url FROM research_resource_sites s
            JOIN research_resource_categories c ON c.id = s.category_id
           WHERE c.name = ?
-          ORDER BY s.url ASC`
+          ORDER BY s.url ASC`,
       )
       .all(categoryName) as Array<{ url: string }>;
     return rows.map((row) => row.url);

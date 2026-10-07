@@ -2,8 +2,8 @@
 .expanded-information.expanded-scrollable {
   max-height: 85vh;
   overflow-y: auto;
-  scrollbar-width: none;          /* Firefox */
-  -ms-overflow-style: none;       /* old Edge/IE */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* old Edge/IE */
 }
 
 /* Hide the scrollbar in WebKit browsers (Chrome, Safari, new Edge). */

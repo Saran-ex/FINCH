@@ -20,5 +20,9 @@ db.pragma("foreign_keys = ON");
 logger.info(`[db] SQLite database at: ${dbAbsolutePath}`);
 
 export function closeDb(): void {
-  try { db.close(); } catch { /* ignore */ }
+  try {
+    db.close();
+  } catch {
+    /* ignore */
+  }
 }

@@ -4,7 +4,13 @@ export function LiquidGlassLayer({ className }: { className: string }) {
   return <div className={className} aria-hidden="true" />;
 }
 
-export function LiquidGlassEnvironment({ children, active = false }: { children: ReactNode; active?: boolean }) {
+export function LiquidGlassEnvironment({
+  children,
+  active = false,
+}: {
+  children: ReactNode;
+  active?: boolean;
+}) {
   return (
     <div className="liquid-environment" data-active={active}>
       <LiquidGlassLayer className="liquid-layer liquid-fluid" />

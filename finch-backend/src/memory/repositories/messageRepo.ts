@@ -39,44 +39,48 @@ export type InsertMessageInput = {
 };
 
 export function insertMessage(input: InsertMessageInput): Message {
-  const info = db.prepare(
-    `INSERT INTO messages
+  const info = db
+    .prepare(
+      `INSERT INTO messages
        (conversation_id, role, mode, content, model_alias, tokens_in, tokens_out)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).run(
-    input.conversationId,
-    input.role,
-    input.mode,
-    input.content,
-    input.modelAlias ?? null,
-    input.tokensIn ?? null,
-    input.tokensOut ?? null
-  );
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      input.conversationId,
+      input.role,
+      input.mode,
+      input.content,
+      input.modelAlias ?? null,
+      input.tokensIn ?? null,
+      input.tokensOut ?? null,
+    );
 
-  const row = db.prepare(
-    "SELECT * FROM messages WHERE id = ?"
-  ).get(info.lastInsertRowid) as Row;
+  const row = db
+    .prepare("SELECT * FROM messages WHERE id = ?")
+    .get(info.lastInsertRowid) as Row;
 
   return toMessage(row);
 }
 
 export function getRecentMessages(
   conversationId: number,
-  limit = 10
+  limit = 10,
 ): Message[] {
-  const rows = db.prepare(
-    `SELECT * FROM messages
+  const rows = db
+    .prepare(
+      `SELECT * FROM messages
      WHERE conversation_id = ?
      ORDER BY id DESC
-     LIMIT ?`
-  ).all(conversationId, limit) as Row[];
+     LIMIT ?`,
+    )
+    .all(conversationId, limit) as Row[];
 
   return rows.map(toMessage).reverse();
 }
 
 export function countMessages(conversationId: number): number {
-  const row = db.prepare(
-    "SELECT COUNT(*) as n FROM messages WHERE conversation_id = ?"
-  ).get(conversationId) as { n: number };
+  const row = db
+    .prepare("SELECT COUNT(*) as n FROM messages WHERE conversation_id = ?")
+    .get(conversationId) as { n: number };
   return row.n;
 }

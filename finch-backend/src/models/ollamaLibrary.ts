@@ -15,11 +15,12 @@ type CacheEntry = { at: number; models: InstalledOllamaModel[] };
 const TTL_MS = 5000;
 let cache: CacheEntry | null = null;
 
-export async function listInstalledOllamaModels(
-  options?: { force?: boolean },
-): Promise<InstalledOllamaModel[]> {
+export async function listInstalledOllamaModels(options?: {
+  force?: boolean;
+}): Promise<InstalledOllamaModel[]> {
   const force = options?.force === true;
-  if (!force && cache !== null && Date.now() - cache.at < TTL_MS) return cache.models;
+  if (!force && cache !== null && Date.now() - cache.at < TTL_MS)
+    return cache.models;
 
   const res = await fetch(`${config.ollamaUrl}/api/tags`, {
     signal: AbortSignal.timeout(5000),

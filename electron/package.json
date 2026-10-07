@@ -1,0 +1,59 @@
+{
+  "name": "finch-electron",
+  "productName": "Finch",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Finch desktop shell - Electron layer (window + backend/frontend supervision)",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "check": "node --check main.js && node --check lib/paths.js && node --check lib/ports.js && node --check lib/services.js && node --check lib/ollama.js && node --check lib/backend-alias-register.mjs && node --check lib/backend-alias-resolver.mjs && node --check scripts/stage-backend-deps.mjs",
+    "stage": "node scripts/stage-backend-deps.mjs",
+    "package": "npm run check && npm run stage && electron-builder --win nsis --publish never"
+  },
+  "devDependencies": {
+    "electron": "38.8.6",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.finch.desktop",
+    "productName": "Finch",
+    "directories": {
+      "output": "installer-output",
+      "buildResources": "build"
+    },
+    "files": ["main.js", "lib/**", "build/finch.ico", "package.json"],
+    "extraResources": [
+      { "from": "../finch-backend/dist", "to": "backend/dist" },
+      { "from": "staging/backend/node_modules", "to": "backend/node_modules" },
+      {
+        "from": "../finch-backend/kitten-tts-worker.mjs",
+        "to": "backend/kitten-tts-worker.mjs"
+      },
+      {
+        "from": "../finch-backend/kokoro-tts-worker.mjs",
+        "to": "backend/kokoro-tts-worker.mjs"
+      },
+      {
+        "from": "build/backend-package.json",
+        "to": "backend/package.json"
+      },
+      { "from": "../tidy-files/.output", "to": "frontend/.output" },
+      { "from": "../models", "to": "models" },
+      { "from": "../voices", "to": "voices" }
+    ],
+    "win": {
+      "icon": "build/finch.ico",
+      "target": [{ "target": "nsis", "arch": ["x64"] }]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Finch",
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}

@@ -34,7 +34,9 @@ function readId(raw: string): number {
 function readEntries(kind: TrustKind): TrustEntryRow[] {
   try {
     const rows = db
-      .prepare("SELECT id, value FROM trust_entries WHERE kind = ? ORDER BY value ASC")
+      .prepare(
+        "SELECT id, value FROM trust_entries WHERE kind = ? ORDER BY value ASC",
+      )
       .all(kind) as TrustEntryRow[];
     return rows;
   } catch (err) {

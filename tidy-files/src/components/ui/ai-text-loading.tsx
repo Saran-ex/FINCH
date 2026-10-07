@@ -17,13 +17,7 @@ interface AITextLoadingProps {
 }
 
 export default function AITextLoading({
-  texts = [
-    "Thinking...",
-    "Processing...",
-    "Analyzing...",
-    "Computing...",
-    "Structuring plan...",
-  ],
+  texts = ["Thinking...", "Processing...", "Analyzing...", "Computing...", "Structuring plan..."],
   className,
   interval = 1500,
 }: AITextLoadingProps) {
@@ -54,7 +48,7 @@ export default function AITextLoading({
             }}
             className={cn(
               "flex justify-start whitespace-nowrap bg-[length:200%_100%] bg-gradient-to-r from-neutral-900 via-neutral-400 to-neutral-900 bg-clip-text font-medium text-base text-transparent dark:from-white dark:via-neutral-500 dark:to-white",
-              className
+              className,
             )}
             exit={{ opacity: 0, y: -10 }}
             initial={{ opacity: 0, y: 10 }}

@@ -1,4 +1,4 @@
-export type TrustLevel = 'high' | 'medium' | 'low';
+export type TrustLevel = "high" | "medium" | "low";
 
 export interface SearchResult {
   title: string;
@@ -9,7 +9,7 @@ export interface SearchResult {
   image?: string;
 }
 
-export type SearchSource = 'local' | 'online' | 'research';
+export type SearchSource = "local" | "online" | "research";
 
 export interface SearchOutcome {
   results: SearchResult[];

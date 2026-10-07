@@ -7,7 +7,9 @@ export type TrustKind = "high" | "suffix" | "low";
 export function getHighTrustDomains(): string[] {
   try {
     const rows = db
-      .prepare("SELECT value FROM trust_entries WHERE kind = ? ORDER BY value ASC")
+      .prepare(
+        "SELECT value FROM trust_entries WHERE kind = ? ORDER BY value ASC",
+      )
       .all("high") as Array<{ value: string }>;
     return rows.map((row) => row.value);
   } catch (err) {
@@ -21,7 +23,9 @@ export function getHighTrustDomains(): string[] {
 export function getHighTrustSuffixes(): string[] {
   try {
     const rows = db
-      .prepare("SELECT value FROM trust_entries WHERE kind = ? ORDER BY value ASC")
+      .prepare(
+        "SELECT value FROM trust_entries WHERE kind = ? ORDER BY value ASC",
+      )
       .all("suffix") as Array<{ value: string }>;
     return rows.map((row) => row.value);
   } catch (err) {
@@ -35,7 +39,9 @@ export function getHighTrustSuffixes(): string[] {
 export function getLowTrustDomains(): string[] {
   try {
     const rows = db
-      .prepare("SELECT value FROM trust_entries WHERE kind = ? ORDER BY value ASC")
+      .prepare(
+        "SELECT value FROM trust_entries WHERE kind = ? ORDER BY value ASC",
+      )
       .all("low") as Array<{ value: string }>;
     return rows.map((row) => row.value);
   } catch (err) {
@@ -46,7 +52,10 @@ export function getLowTrustDomains(): string[] {
   }
 }
 
-export function addTrustEntry(kind: TrustKind, value: string): { id: number; value: string } {
+export function addTrustEntry(
+  kind: TrustKind,
+  value: string,
+): { id: number; value: string } {
   const result = db
     .prepare("INSERT INTO trust_entries (kind, value) VALUES (?, ?)")
     .run(kind, value);

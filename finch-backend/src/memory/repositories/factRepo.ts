@@ -26,10 +26,12 @@ function toFact(r: Row): Fact {
 }
 
 export function getTopFacts(limit = 15): Fact[] {
-  const rows = db.prepare(
-    `SELECT * FROM memory_facts
+  const rows = db
+    .prepare(
+      `SELECT * FROM memory_facts
      ORDER BY confidence DESC, updated_at DESC
-     LIMIT ?`
-  ).all(limit) as Row[];
+     LIMIT ?`,
+    )
+    .all(limit) as Row[];
   return rows.map(toFact);
 }

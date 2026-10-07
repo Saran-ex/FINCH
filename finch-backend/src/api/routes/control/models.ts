@@ -36,13 +36,13 @@ router.put("/:alias", (req, res, next) => {
       const modesUsing = db
         .prepare(
           `SELECT mode FROM mode_settings
-           WHERE primary_alias = ? AND (fallback_alias IS NULL OR fallback_alias = '')`
+           WHERE primary_alias = ? AND (fallback_alias IS NULL OR fallback_alias = '')`,
         )
         .all(alias) as Array<{ mode: string }>;
 
       if (modesUsing.length > 0) {
         throw new ValidationError(
-          `Alias '${alias}' is the sole primary for mode(s): ${modesUsing.map((m) => m.mode).join(", ")}. Add a fallback or keep enabled.`
+          `Alias '${alias}' is the sole primary for mode(s): ${modesUsing.map((m) => m.mode).join(", ")}. Add a fallback or keep enabled.`,
         );
       }
     }

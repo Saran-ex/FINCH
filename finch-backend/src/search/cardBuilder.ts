@@ -1,4 +1,4 @@
-import type { SearchResult } from './types';
+import type { SearchResult } from "./types";
 
 export interface TopicCard {
   headline: string;
@@ -16,7 +16,7 @@ const TITLE_MAX_LENGTH = 150;
 
 // Removes angle brackets, collapses whitespace runs, trims.
 function cleanText(value: string): string {
-  return value.replace(/[<>]/g, '').replace(/\s+/g, ' ').trim();
+  return value.replace(/[<>]/g, "").replace(/\s+/g, " ").trim();
 }
 
 function cleanTitle(title: string): string {
@@ -25,12 +25,12 @@ function cleanTitle(title: string): string {
 
 function cleanSnippet(snippet: string): string {
   const cleaned = cleanText(snippet);
-  return cleaned.length > 0 ? cleaned : '(no description)';
+  return cleaned.length > 0 ? cleaned : "(no description)";
 }
 
 function buildSourcesBlock(results: SearchResult[]): string {
   if (results.length === 0) {
-    return 'No sources were found.';
+    return "No sources were found.";
   }
 
   const entries = results.map((result, index) => {
@@ -40,25 +40,25 @@ function buildSourcesBlock(results: SearchResult[]): string {
     return `[${index + 1}] ${title} | ${domain}\n${snippet}`;
   });
 
-  return entries.join('\n\n');
+  return entries.join("\n\n");
 }
 
 // Never throws: returns [] on any parse/shape problem.
 export function parseCardsJson(raw: string): TopicCard[] {
   try {
-    if (typeof raw !== 'string' || raw.length === 0) {
+    if (typeof raw !== "string" || raw.length === 0) {
       return [];
     }
 
-    const start = raw.indexOf('{');
-    const end = raw.lastIndexOf('}');
+    const start = raw.indexOf("{");
+    const end = raw.lastIndexOf("}");
     if (start === -1 || end === -1 || end <= start) {
       return [];
     }
 
     const slice = raw.slice(start, end + 1);
     const parsed: unknown = JSON.parse(slice);
-    if (typeof parsed !== 'object' || parsed === null) {
+    if (typeof parsed !== "object" || parsed === null) {
       return [];
     }
 
@@ -72,12 +72,12 @@ export function parseCardsJson(raw: string): TopicCard[] {
       if (result.length >= CARDS_MAX_LENGTH) {
         break;
       }
-      if (typeof item !== 'object' || item === null) {
+      if (typeof item !== "object" || item === null) {
         continue;
       }
       const headline = (item as { headline?: unknown }).headline;
       const summary = (item as { summary?: unknown }).summary;
-      if (typeof headline !== 'string' || typeof summary !== 'string') {
+      if (typeof headline !== "string" || typeof summary !== "string") {
         continue;
       }
       const trimmedHeadline = headline.trim();
@@ -90,7 +90,7 @@ export function parseCardsJson(raw: string): TopicCard[] {
         summary: trimmedSummary.slice(0, SUMMARY_MAX_LENGTH),
       };
       const category = (item as { category?: unknown }).category;
-      if (typeof category === 'string') {
+      if (typeof category === "string") {
         const trimmedCategory = category.trim();
         if (trimmedCategory.length > 0) {
           card.category = trimmedCategory;
@@ -106,7 +106,10 @@ export function parseCardsJson(raw: string): TopicCard[] {
 
 // One card per ranked source, copied straight from the source with no model in
 // the loop: the source's own title and snippet. Never throws.
-export function buildCardsFromSources(results: SearchResult[], maxCards: number): TopicCard[] {
+export function buildCardsFromSources(
+  results: SearchResult[],
+  maxCards: number,
+): TopicCard[] {
   if (!Array.isArray(results) || maxCards <= 0) {
     return [];
   }
@@ -125,7 +128,7 @@ export function buildCardsFromSources(results: SearchResult[], maxCards: number)
 export function buildCardsPrompt(
   question: string,
   results: SearchResult[],
-  instructions: string
+  instructions: string,
 ): string {
   const safeQuestion = cleanText(question).slice(0, QUESTION_MAX_LENGTH);
   const sourcesBlock = buildSourcesBlock(results);

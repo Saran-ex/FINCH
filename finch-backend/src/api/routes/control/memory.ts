@@ -1,6 +1,10 @@
 import { Router } from "express";
 import { db } from "../../../db/client.js";
-import { NotFoundError, ValidationError, ConflictError } from "../../../services/errors.js";
+import {
+  NotFoundError,
+  ValidationError,
+  ConflictError,
+} from "../../../services/errors.js";
 import { logger } from "../../../services/logger.js";
 import {
   BatchNotFoundError,
@@ -43,7 +47,11 @@ function toHttpError(err: unknown): unknown {
 function readBatchId(body: unknown): number {
   const parsed = body as { batchId?: unknown } | undefined;
   const batchId = parsed?.batchId;
-  if (typeof batchId !== "number" || !Number.isInteger(batchId) || batchId <= 0) {
+  if (
+    typeof batchId !== "number" ||
+    !Number.isInteger(batchId) ||
+    batchId <= 0
+  ) {
     throw new ValidationError("batchId must be a positive integer");
   }
   return batchId;
@@ -93,7 +101,7 @@ router.get("/", (_req, res, next) => {
          FROM conversations c
          WHERE c.archived = 0
          ORDER BY c.updated_at DESC
-         LIMIT 100`
+         LIMIT 100`,
       )
       .all() as Array<{
       id: number;
@@ -114,7 +122,7 @@ router.get("/", (_req, res, next) => {
         updatedAt: r.updated_at,
         archived: r.archived === 1,
         messageCount: r.message_count,
-      }))
+      })),
     );
   } catch (err) {
     next(err);
@@ -146,7 +154,11 @@ router.post("/summarize", (req, res, next) => {
       error: null,
     };
     summarizeJobs.set(jobId, job);
-    logger.info("summarize job started", { jobId, days, model: model ?? "finch-3" });
+    logger.info("summarize job started", {
+      jobId,
+      days,
+      model: model ?? "finch-3",
+    });
 
     createPendingBatch(days, model)
       .then((result) => {
@@ -236,9 +248,12 @@ const MESSAGE_MODES = ["conversation", "plan", "search", "research"] as const;
 router.get("/messages", (req, res, next) => {
   try {
     const mode = req.query.mode;
-    if (typeof mode !== "string" || !MESSAGE_MODES.includes(mode as (typeof MESSAGE_MODES)[number])) {
+    if (
+      typeof mode !== "string" ||
+      !MESSAGE_MODES.includes(mode as (typeof MESSAGE_MODES)[number])
+    ) {
       throw new ValidationError(
-        `mode is required and must be one of: ${MESSAGE_MODES.join(", ")}`
+        `mode is required and must be one of: ${MESSAGE_MODES.join(", ")}`,
       );
     }
 
@@ -250,7 +265,9 @@ router.get("/messages", (req, res, next) => {
       }
       limit = parseInt(limitRaw, 10);
       if (limit <= 0 || limit > 200) {
-        throw new ValidationError("limit must be a positive integer no greater than 200");
+        throw new ValidationError(
+          "limit must be a positive integer no greater than 200",
+        );
       }
     }
 
@@ -258,11 +275,15 @@ router.get("/messages", (req, res, next) => {
     const hoursRaw = req.query.hours;
     if (hoursRaw !== undefined) {
       if (typeof hoursRaw !== "string" || !/^\d+$/.test(hoursRaw)) {
-        throw new ValidationError("hours must be a positive integer no greater than 168");
+        throw new ValidationError(
+          "hours must be a positive integer no greater than 168",
+        );
       }
       hours = parseInt(hoursRaw, 10);
       if (hours <= 0 || hours > 168) {
-        throw new ValidationError("hours must be a positive integer no greater than 168");
+        throw new ValidationError(
+          "hours must be a positive integer no greater than 168",
+        );
       }
     }
 
@@ -272,7 +293,7 @@ router.get("/messages", (req, res, next) => {
            FROM messages
           WHERE mode = ? AND created_at > datetime('now', ?)
           ORDER BY id DESC
-          LIMIT ?`
+          LIMIT ?`,
       )
       .all(mode, `-${hours} hours`, limit) as Array<{
       id: number;
@@ -283,6 +304,26 @@ router.get("/messages", (req, res, next) => {
     }>;
 
     res.json(rows);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete("/messages/:id", (req, res, next) => {
+  try {
+    const idStr = req.params.id;
+    if (!isPositiveInt(idStr)) {
+      throw new ValidationError("id must be a positive integer");
+    }
+    const id = parseInt(idStr, 10);
+
+    const exists = db.prepare("SELECT 1 FROM messages WHERE id = ?").get(id);
+    if (!exists) throw new NotFoundError(`Message ${id} not found`);
+
+    db.prepare("DELETE FROM messages WHERE id = ?").run(id);
+    logger.info("message deleted", { id });
+
+    res.json({ deleted: true, id });
   } catch (err) {
     next(err);
   }
@@ -316,7 +357,7 @@ router.get("/:id", (req, res, next) => {
         `SELECT id, role, mode, content, model_alias, tokens_in, tokens_out, created_at
          FROM messages
          WHERE conversation_id = ?
-         ORDER BY id ASC`
+         ORDER BY id ASC`,
       )
       .all(id) as Array<{
       id: number;

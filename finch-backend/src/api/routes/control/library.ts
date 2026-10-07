@@ -1,5 +1,8 @@
 import { Router } from "express";
-import { syncModelLibrary, setModelLibraryEnabled } from "../../../services/modelLibrary.js";
+import {
+  syncModelLibrary,
+  setModelLibraryEnabled,
+} from "../../../services/modelLibrary.js";
 import { validateLibraryBody } from "../../schemas/controlSchema.js";
 
 const router = Router();

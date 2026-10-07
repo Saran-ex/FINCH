@@ -76,13 +76,25 @@ function floatToWav(samples: Float32Array, sampleRate: number): Buffer {
   return wav;
 }
 
-function handleMessage(msg: { type?: string; loadMs?: number; sampleRate?: number; numSpeakers?: number; id?: number; samples?: Float32Array; message?: string }): void {
+function handleMessage(msg: {
+  type?: string;
+  loadMs?: number;
+  sampleRate?: number;
+  numSpeakers?: number;
+  id?: number;
+  samples?: Float32Array;
+  message?: string;
+}): void {
   if (msg.type === "ready") {
     if (readyTimer) {
       clearTimeout(readyTimer);
       readyTimer = null;
     }
-    readyResolve?.({ loadMs: msg.loadMs ?? 0, sampleRate: msg.sampleRate ?? 24000, numSpeakers: msg.numSpeakers ?? 0 });
+    readyResolve?.({
+      loadMs: msg.loadMs ?? 0,
+      sampleRate: msg.sampleRate ?? 24000,
+      numSpeakers: msg.numSpeakers ?? 0,
+    });
     return;
   }
 
@@ -91,9 +103,16 @@ function handleMessage(msg: { type?: string; loadMs?: number; sampleRate?: numbe
     pending = null;
     clearTimeout(job.timer);
     if (msg.type === "audio" && msg.samples) {
-      job.resolve({ sampleRate: msg.sampleRate ?? 24000, samples: msg.samples });
+      job.resolve({
+        sampleRate: msg.sampleRate ?? 24000,
+        samples: msg.samples,
+      });
     } else {
-      job.reject(new ModelError(`Kitten synthesis failed: ${msg.message ?? "unknown error"}`));
+      job.reject(
+        new ModelError(
+          `Kitten synthesis failed: ${msg.message ?? "unknown error"}`,
+        ),
+      );
     }
   }
 }
@@ -147,7 +166,11 @@ function spawnWorker(): Promise<ReadyInfo> {
     readyReject = reject;
   });
   readyTimer = setTimeout(() => {
-    failWorker(new ModelError(`Kitten model did not load within ${KITTEN_READY_TIMEOUT_MS}ms`));
+    failWorker(
+      new ModelError(
+        `Kitten model did not load within ${KITTEN_READY_TIMEOUT_MS}ms`,
+      ),
+    );
   }, KITTEN_READY_TIMEOUT_MS);
 
   // Identity guards: a late exit/error from an OLD (terminated) worker must
@@ -156,10 +179,12 @@ function spawnWorker(): Promise<ReadyInfo> {
     if (worker === w) handleMessage(msg);
   });
   w.on("error", (err: Error) => {
-    if (worker === w) failWorker(new ModelError(`Kitten worker error: ${err.message}`));
+    if (worker === w)
+      failWorker(new ModelError(`Kitten worker error: ${err.message}`));
   });
   w.on("exit", () => {
-    if (worker === w) failWorker(new ModelError("Kitten worker exited unexpectedly"));
+    if (worker === w)
+      failWorker(new ModelError("Kitten worker exited unexpectedly"));
   });
   return readyPromise;
 }
@@ -168,7 +193,7 @@ export async function synthesizeKitten(text: string): Promise<Buffer> {
   const sid = VOICE_SIDS[config.voice.kittenVoice];
   if (sid === undefined) {
     throw new ValidationError(
-      `Unknown KITTEN_VOICE "${config.voice.kittenVoice}" (expected one of ${Object.keys(VOICE_SIDS).join(", ")})`
+      `Unknown KITTEN_VOICE "${config.voice.kittenVoice}" (expected one of ${Object.keys(VOICE_SIDS).join(", ")})`,
     );
   }
 
@@ -189,19 +214,28 @@ export async function synthesizeKitten(text: string): Promise<Buffer> {
       const id = nextJobId++;
       const timer = setTimeout(() => {
         if (pending && pending.id === id) {
-          failWorker(new ModelError(`Kitten synthesis timed out after ${KITTEN_JOB_TIMEOUT_MS}ms`));
+          failWorker(
+            new ModelError(
+              `Kitten synthesis timed out after ${KITTEN_JOB_TIMEOUT_MS}ms`,
+            ),
+          );
         }
       }, KITTEN_JOB_TIMEOUT_MS);
       pending = {
         id,
-        resolve: (audio) => resolve(floatToWav(audio.samples, audio.sampleRate)),
+        resolve: (audio) =>
+          resolve(floatToWav(audio.samples, audio.sampleRate)),
         reject,
         timer,
       };
       try {
         w.postMessage({ type: "speak", id, text, sid });
       } catch (err) {
-        failWorker(new ModelError(`Kitten worker rejected the job: ${err instanceof Error ? err.message : String(err)}`));
+        failWorker(
+          new ModelError(
+            `Kitten worker rejected the job: ${err instanceof Error ? err.message : String(err)}`,
+          ),
+        );
       }
     });
   } finally {

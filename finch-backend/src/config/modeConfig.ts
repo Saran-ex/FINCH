@@ -1,5 +1,8 @@
 import type { Mode } from "./constants.js";
-import { SEARCH_SYSTEM_PROMPT_DRAFT, RESEARCH_SYSTEM_PROMPT_DRAFT } from "../search/answerBuilder.js";
+import {
+  SEARCH_SYSTEM_PROMPT_DRAFT,
+  RESEARCH_SYSTEM_PROMPT_DRAFT,
+} from "../search/answerBuilder.js";
 
 export interface ModeConfig {
   numPredict: number;
@@ -16,7 +19,7 @@ export const modeConfigs: Record<Mode, ModeConfig> = {
     useJson: true,
     numCtx: 4096,
     // Default/fallback prompt only; the live prompt is read from the `prompts` table each turn.
-    systemPrompt: `You are Finch, a calm and thoughtful AI companion. Speak warmly, keep replies under 40 words unless asked for detail. You have access to summaries of past conversations — use them naturally, do not recite them.`
+    systemPrompt: `You are Finch, a calm and thoughtful AI companion. Speak warmly, keep replies under 40 words unless asked for detail. You have access to summaries of past conversations — use them naturally, do not recite them.`,
   },
   plan: {
     numPredict: 1024,
@@ -29,7 +32,7 @@ Answer the user's actual question directly and stay on their topic.
 If the user asks for N points, give exactly N numbered points, no more, no less.
 Give each point a bold title followed by 2-3 sentences of explanation.
 Use markdown. Give the full answer in one reply.
-Only write a step-by-step plan if the user asks for a plan.`
+Only write a step-by-step plan if the user asks for a plan.`,
   },
   research: {
     numPredict: 1536,
@@ -37,7 +40,7 @@ Only write a step-by-step plan if the user asks for a plan.`
     useJson: false,
     numCtx: 4096,
     // Default/fallback prompt only; the live prompt is read from the `prompts` table each turn.
-    systemPrompt: RESEARCH_SYSTEM_PROMPT_DRAFT
+    systemPrompt: RESEARCH_SYSTEM_PROMPT_DRAFT,
   },
   search: {
     numPredict: 512,
@@ -45,8 +48,8 @@ Only write a step-by-step plan if the user asks for a plan.`
     useJson: false,
     numCtx: 4096,
     // Default/fallback prompt only; the live prompt is read from the `prompts` table each turn.
-    systemPrompt: SEARCH_SYSTEM_PROMPT_DRAFT
-  }
+    systemPrompt: SEARCH_SYSTEM_PROMPT_DRAFT,
+  },
 };
 
 export function getModeConfig(mode: Mode): ModeConfig {
